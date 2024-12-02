@@ -43,6 +43,7 @@ from packages.valory.skills.abstract_round_abci.behaviours import (
 )
 from packages.valory.skills.abstract_round_abci.io_.store import SupportedFiletype
 from packages.valory.skills.learning_abci.models import (
+    CoingeckoETHSpecs,
     CoingeckoSpecs,
     Params,
     SharedState,
@@ -53,6 +54,7 @@ from packages.valory.skills.learning_abci.payloads import (
     TxPreparationPayload,
 )
 from packages.valory.skills.learning_abci.rounds import (
+    DataPullOlasEthPriceRound,
     DataPullRound,
     DecisionMakingRound,
     Event,
@@ -99,6 +101,11 @@ class LearningBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-anc
     def coingecko_specs(self) -> CoingeckoSpecs:
         """Get the Coingecko api specs."""
         return self.context.coingecko_specs
+
+    @property
+    def olas_eth_pair_price_specs(self) -> CoingeckoETHSpecs:
+        """Get the Coingecko api specs."""
+        return self.context.olas_eth_pair_price_specs
 
     @property
     def metadata_filepath(self) -> str:
@@ -277,6 +284,50 @@ class DataPullBehaviour(LearningBaseBehaviour):  # pylint: disable=too-many-ance
         self.context.logger.error(f"Got native balance: {balance}")
 
         return balance
+
+
+class DataPull2Behaviour(LearningBaseBehaviour):  # pylint: disable=too-many-ancestors
+    """This behaviours pulls OLAS/ETH pair price from API endpoints"""
+
+    matching_round: Type[AbstractRound] = DataPullOlasEthPriceRound
+
+    def async_act(self) -> Generator:
+
+        with self.context.benchmark_tool.measure(self.behaviour_id).local():
+            sender = self.context.agent_address
+
+            price = yield from self.get_token_price_specs()
+
+            payload = DataPullPayload(
+                sender=sender,
+                price=price,
+                price_ipfs_hash=0,
+                native_balance=0,
+                erc20_balance=0,
+            )
+
+        with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
+            yield from self.send_a2a_transaction(payload)
+            yield from self.wait_until_round_end()
+
+        self.set_done()
+
+    def get_token_price_specs(self) -> Generator[None, None, Optional[float]]:
+        """Get token price from Coingecko using ApiSpecs"""
+
+        # Get the specs
+        specs = self.olas_eth_pair_price_specs.get_spec()
+
+        # Make the call
+        raw_response = yield from self.get_http_response(**specs)
+
+        # Process the response
+        response = self.olas_eth_pair_price_specs.process_response(raw_response)
+
+        # Get the price
+        price = response.get("eth", None)
+        self.context.logger.info(f"Got token eth price from Coingecko: {price}")
+        return price
 
 
 class DecisionMakingBehaviour(
@@ -658,6 +709,7 @@ class LearningRoundBehaviour(AbstractRoundBehaviour):
     abci_app_cls = LearningAbciApp  # type: ignore
     behaviours: Set[Type[BaseBehaviour]] = [  # type: ignore
         DataPullBehaviour,
+        DataPull2Behaviour,
         DecisionMakingBehaviour,
         TxPreparationBehaviour,
     ]

@@ -7,7 +7,7 @@ license: Apache-2.0
 fingerprint:
   README.md: bafybeid42pdrf6qrohedylj4ijrss236ai6geqgf3he44huowiuf7pl464
 fingerprint_ignore_patterns: []
-agent: valory/learning_agent:0.1.0:bafybeiatizepnj42umexk3p5rnop67cdshbgrflvnysaagm3t4xqo74kem
+agent: valory/learning_agent:0.1.0:bafybeih7azps2fja3k2bccdoyr6vy7zspsnjuq7xv7ng7l2vponrna3ikm
 number_of_agents: 4
 deployment:
   agent:
@@ -108,6 +108,20 @@ extra:
         response_type: dict
         retries: 5
         url: https://api.coingecko.com/api/v3/simple/price
+    olas_eth_pair_price_specs:
+      args:
+        api_id: coingecko
+        headers:
+          Accept: application/json
+        method: GET
+        parameters:
+          ids: autonolas
+          vs_currencies: eth
+          x_cg_demo_api_key: ${str:null}
+        response_key: autonolas
+        response_type: dict
+        retries: 5
+        url: https://api.coingecko.com/api/v3/simple/price
 1:
   models:
     benchmark_tool:
@@ -165,6 +179,20 @@ extra:
           ids: autonolas
           vs_currencies: usd
           x_cg_demo_api_key: ${COINGECKO_API_KEY:str:null}
+        response_key: autonolas
+        response_type: dict
+        retries: 5
+        url: https://api.coingecko.com/api/v3/simple/price
+    olas_eth_pair_price_specs:
+      args:
+        api_id: coingecko
+        headers:
+          Accept: application/json
+        method: GET
+        parameters:
+          ids: autonolas
+          vs_currencies: eth
+          x_cg_demo_api_key: ${str:null}
         response_key: autonolas
         response_type: dict
         retries: 5
@@ -230,6 +258,20 @@ extra:
         response_type: dict
         retries: 5
         url: https://api.coingecko.com/api/v3/simple/price
+    olas_eth_pair_price_specs:
+      args:
+        api_id: coingecko
+        headers:
+          Accept: application/json
+        method: GET
+        parameters:
+          ids: autonolas
+          vs_currencies: eth
+          x_cg_demo_api_key: ${str:null}
+        response_key: autonolas
+        response_type: dict
+        retries: 5
+        url: https://api.coingecko.com/api/v3/simple/price
 3:
   models:
     benchmark_tool:
@@ -287,6 +329,20 @@ extra:
           ids: autonolas
           vs_currencies: usd
           x_cg_demo_api_key: ${COINGECKO_API_KEY:str:null}
+        response_key: autonolas
+        response_type: dict
+        retries: 5
+        url: https://api.coingecko.com/api/v3/simple/price
+    olas_eth_pair_price_specs:
+      args:
+        api_id: coingecko
+        headers:
+          Accept: application/json
+        method: GET
+        parameters:
+          ids: autonolas
+          vs_currencies: eth
+          x_cg_demo_api_key: ${str:null}
         response_key: autonolas
         response_type: dict
         retries: 5

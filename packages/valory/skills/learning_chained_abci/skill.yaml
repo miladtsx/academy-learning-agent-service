@@ -12,7 +12,7 @@ fingerprint:
   dialogues.py: bafybeiakqfqcpg7yrxt4bsyernhy5p77tci4qhmgqqjqi3ttx7zk6sklca
   fsm_specification.yaml: bafybeibhguliurgppqgues6zhy3e3pioacgapilid7j26u4pmfsump5ape
   handlers.py: bafybeicru4lanvektcppxpecul4zwjfuaxseopxtsxrfzmbfaz5qk4m67q
-  models.py: bafybeico4qysu652lznxwxfamsu43d7llstplca5eqcwnmwg66fxmzt4qe
+  models.py: bafybeih4wuuahyvrnwbmq7pa63ogsro6bam4ovmeua36g5nlenscg3ynca
 fingerprint_ignore_patterns: []
 connections: []
 contracts: []
@@ -22,7 +22,7 @@ skills:
 - valory/registration_abci:0.1.0:bafybeiffipsowrqrkhjoexem7ern5ob4fabgif7wa6gtlszcoaop2e3oey
 - valory/reset_pause_abci:0.1.0:bafybeif4lgvbzsmzljesxbphycdv52ka7qnihyjrjpfaseclxadcmm6yiq
 - valory/termination_abci:0.1.0:bafybeiekkpo5qef5zaeagm3si6v45qxcojvtjqe4a5ceccvk4q7k3xi3bi
-- valory/learning_abci:0.1.0:bafybeih5m372dqrdfy7w6iah4m5qfgf3j5t7ihsgorzyzhax5srm32wmim
+- valory/learning_abci:0.1.0:bafybeifwfmkcw7tpj2adrtvbjonp4nehuhik4q2gstoxubg2e5gf44ui2i
 - valory/transaction_settlement_abci:0.1.0:bafybeielv6eivt2z6nforq43xewl2vmpfwpdu2s2vfogobziljnwsclmlm
 behaviours:
   main:
@@ -155,6 +155,21 @@ models:
       retries: 5
       url: https://api.coingecko.com/api/v3/simple/price
     class_name: CoingeckoSpecs
+  olas_eth_pair_price_specs:
+    args:
+      api_id: coingecko
+      headers:
+        Accept: application/json
+      method: GET
+      parameters:
+        ids: autonolas
+        vs_currencies: eth
+        x_cg_demo_api_key: null
+      response_key: autonolas
+      response_type: dict
+      retries: 5
+      url: https://api.coingecko.com/api/v3/simple/price
+    class_name: CoingeckoETHSpecs
   randomness_api:
     args:
       api_id: cloudflare
