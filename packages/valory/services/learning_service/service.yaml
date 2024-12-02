@@ -108,6 +108,20 @@ extra:
         response_type: dict
         retries: 5
         url: https://api.coingecko.com/api/v3/simple/price
+    olas_eth_pair_price_specs:
+      args:
+        api_id: coingecko
+        headers:
+          Accept: application/json
+        method: GET
+        parameters:
+          ids: autonolas
+          vs_currencies: eth
+          x_cg_demo_api_key: ${str:null}
+        response_key: autonolas
+        response_type: dict
+        retries: 5
+        url: https://api.coingecko.com/api/v3/simple/price
 1:
   models:
     benchmark_tool:
@@ -165,6 +179,20 @@ extra:
           ids: autonolas
           vs_currencies: usd
           x_cg_demo_api_key: ${COINGECKO_API_KEY:str:null}
+        response_key: autonolas
+        response_type: dict
+        retries: 5
+        url: https://api.coingecko.com/api/v3/simple/price
+    olas_eth_pair_price_specs:
+      args:
+        api_id: coingecko
+        headers:
+          Accept: application/json
+        method: GET
+        parameters:
+          ids: autonolas
+          vs_currencies: eth
+          x_cg_demo_api_key: ${str:null}
         response_key: autonolas
         response_type: dict
         retries: 5
@@ -230,6 +258,20 @@ extra:
         response_type: dict
         retries: 5
         url: https://api.coingecko.com/api/v3/simple/price
+    olas_eth_pair_price_specs:
+      args:
+        api_id: coingecko
+        headers:
+          Accept: application/json
+        method: GET
+        parameters:
+          ids: autonolas
+          vs_currencies: eth
+          x_cg_demo_api_key: ${str:null}
+        response_key: autonolas
+        response_type: dict
+        retries: 5
+        url: https://api.coingecko.com/api/v3/simple/price
 3:
   models:
     benchmark_tool:
@@ -287,6 +329,20 @@ extra:
           ids: autonolas
           vs_currencies: usd
           x_cg_demo_api_key: ${COINGECKO_API_KEY:str:null}
+        response_key: autonolas
+        response_type: dict
+        retries: 5
+        url: https://api.coingecko.com/api/v3/simple/price
+    olas_eth_pair_price_specs:
+      args:
+        api_id: coingecko
+        headers:
+          Accept: application/json
+        method: GET
+        parameters:
+          ids: autonolas
+          vs_currencies: eth
+          x_cg_demo_api_key: ${str:null}
         response_key: autonolas
         response_type: dict
         retries: 5

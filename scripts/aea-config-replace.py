@@ -52,6 +52,11 @@ def main() -> None:
                 "x_cg_demo_api_key"
             ] = f"${{str:{os.getenv('COINGECKO_API_KEY')}}}"  # type: ignore
 
+            # Coingecko2 API key (ApiSpecs)
+            config[-1]["models"]["olas_eth_pair_price_specs"]["args"]["parameters"][
+                "x_cg_demo_api_key"
+            ] = f"${{str:{os.getenv('COINGECKO_API_KEY')}}}"  # type: ignore
+
             # ALL_PARTICIPANTS
             config[-1]["models"]["params"]["args"]["setup"][
                 "all_participants"

@@ -89,6 +89,11 @@ class SynchronizedData(BaseSynchronizedData):
         return self._get_deserialized("participant_to_data_round")
 
     @property
+    def olas_eth_pair_price(self) -> DeserializedCollection:
+        """Agent to payload mapping for the second DataPullRound."""
+        return self._get_deserialized("olas_eth_pair_price")
+
+    @property
     def most_voted_tx_hash(self) -> Optional[float]:
         """Get the token most_voted_tx_hash."""
         return self.db.get("most_voted_tx_hash", None)
@@ -124,6 +129,21 @@ class DataPullRound(CollectSameUntilThresholdRound):
         get_name(SynchronizedData.native_balance),
         get_name(SynchronizedData.erc20_balance),
     )
+
+    # Event.ROUND_TIMEOUT  # this needs to be referenced for static checkers
+
+
+class DataPullOlasEthPriceRound(CollectSameUntilThresholdRound):
+    """DataPullOlasEthPriceRound"""
+
+    payload_class = DataPullPayload
+    synchronized_data_class = SynchronizedData
+    done_event = Event.DONE
+    no_majority_event = Event.NO_MAJORITY
+
+    collection_key = get_name(SynchronizedData.olas_eth_pair_price)
+
+    selection_key = (get_name(SynchronizedData.olas_eth_pair_price))
 
     # Event.ROUND_TIMEOUT  # this needs to be referenced for static checkers
 
@@ -188,6 +208,11 @@ class LearningAbciApp(AbciApp[Event]):
         DataPullRound: {
             Event.NO_MAJORITY: DataPullRound,
             Event.ROUND_TIMEOUT: DataPullRound,
+            Event.DONE: DataPullOlasEthPriceRound,
+        },
+        DataPullOlasEthPriceRound: {
+            Event.NO_MAJORITY: DataPullOlasEthPriceRound,
+            Event.ROUND_TIMEOUT: DataPullOlasEthPriceRound,
             Event.DONE: DecisionMakingRound,
         },
         DecisionMakingRound: {
