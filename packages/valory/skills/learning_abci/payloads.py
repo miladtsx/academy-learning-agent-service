@@ -33,6 +33,7 @@ class DataPullPayload(BaseTxPayload):
     price_ipfs_hash: Optional[str]
     native_balance: Optional[float]
     erc20_balance: Optional[float]
+    erc20_total_supply: Optional[float]
 
 
 @dataclass(frozen=True)
