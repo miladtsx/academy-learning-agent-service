@@ -524,7 +524,7 @@ class TxPreparationBehaviour(
             sender = self.context.agent_address
 
             # Get the transaction hash
-            tx_hash = yield from self.get_native_transfer_safe_tx_hash()
+            tx_hash = yield from self.get_erc20_transfer_safe_tx_hash()
 
             payload = TxPreparationPayload(
                 sender=sender, tx_submitter=self.auto_behaviour_id(), tx_hash=tx_hash
@@ -618,7 +618,7 @@ class TxPreparationBehaviour(
             contract_id=str(ERC20.contract_id),
             contract_callable="build_transfer_tx",
             recipient=self.params.transfer_target_address,
-            amount=1,
+            amount=10000000000000000000,
             chain_id=GNOSIS_CHAIN_ID,
         )
 
