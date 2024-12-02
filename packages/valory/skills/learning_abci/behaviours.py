@@ -290,7 +290,7 @@ class DataPullBehaviour(LearningBaseBehaviour):  # pylint: disable=too-many-ance
         # Ensure that the balance is not None
         if total_supply is None:
             self.context.logger.error(
-                f"Error while retrieving the balance:  {response_msg}"
+                f"Error while retrieving the total supply:  {response_msg}"
             )
             return None
 
