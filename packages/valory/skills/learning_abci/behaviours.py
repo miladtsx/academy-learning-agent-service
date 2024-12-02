@@ -148,14 +148,18 @@ class DataPullBehaviour(LearningBaseBehaviour):  # pylint: disable=too-many-ance
             # Get the token balance
             erc20_balance = yield from self.get_erc20_balance()
 
+            # Get the token total supply
+            total_supply = yield from self.get_erc20_total_supply()
+
             # Prepare the payload to be shared with other agents
-            # After consensus, all the agents will have the same price, price_ipfs_hash and balance variables in their synchronized data
+            # After consensus, all the agents will have the same price, price_ipfs_hash, balance and total_supply variables in their synchronized data
             payload = DataPullPayload(
                 sender=sender,
                 price=price,
                 price_ipfs_hash=price_ipfs_hash,
                 native_balance=native_balance,
                 erc20_balance=erc20_balance,
+                erc20_total_supply=total_supply,
             )
 
         # Send the payload to all agents and mark the behaviour as done
@@ -259,6 +263,44 @@ class DataPullBehaviour(LearningBaseBehaviour):  # pylint: disable=too-many-ance
         )
         return balance
 
+    def get_erc20_total_supply(self) -> Generator[None, None, Optional[float]]:
+        """Get ERC20 total supply"""
+        self.context.logger.info(
+            f"Getting Olas total supply {self.params.olas_token_address}"
+        )
+
+        # Use the contract api to interact with the ERC20 contract
+        response_msg = yield from self.get_contract_api_response(
+            performative=ContractApiMessage.Performative.GET_RAW_TRANSACTION,  # type: ignore
+            contract_address=self.params.olas_token_address,
+            contract_id=str(ERC20.contract_id),
+            contract_callable="total_supply",
+            chain_id=GNOSIS_CHAIN_ID,
+        )
+
+        # Check that the response is what we expect
+        if response_msg.performative != ContractApiMessage.Performative.RAW_TRANSACTION:
+            self.context.logger.error(
+                f"Error while retrieving the balance: {response_msg}"
+            )
+            return None
+
+        total_supply = response_msg.raw_transaction.body.get("total_supply", None)
+
+        # Ensure that the balance is not None
+        if total_supply is None:
+            self.context.logger.error(
+                f"Error while retrieving the total supply:  {response_msg}"
+            )
+            return None
+
+        total_supply = total_supply / 10**18  # from wei
+
+        self.context.logger.info(
+            f"OLAS {self.params.olas_token_address} has total supply of {total_supply} token"
+        )
+        return total_supply
+
     def get_native_balance(self) -> Generator[None, None, Optional[float]]:
         """Get the native balance"""
         self.context.logger.info(
@@ -314,6 +356,7 @@ class DataPull2Behaviour(LearningBaseBehaviour):  # pylint: disable=too-many-anc
                 price_ipfs_hash=eth_price_ipfs_hash,
                 native_balance=0,
                 erc20_balance=0,
+                erc20_total_supply=0
             )
 
         with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
