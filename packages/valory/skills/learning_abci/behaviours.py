@@ -417,6 +417,8 @@ class DecisionMakingBehaviour(
             )
             return Event.ERROR.value
 
+        return Event.TRANSACT.value
+
         # Make a decision based on the balance's last number
         last_number = int(str(native_balance)[-1])
 
@@ -479,7 +481,7 @@ class TxPreparationBehaviour(
             sender = self.context.agent_address
 
             # Get the transaction hash
-            tx_hash = yield from self.get_tx_hash()
+            tx_hash = yield from self.get_native_transfer_safe_tx_hash()
 
             payload = TxPreparationPayload(
                 sender=sender, tx_submitter=self.auto_behaviour_id(), tx_hash=tx_hash
