@@ -296,12 +296,22 @@ class DataPull2Behaviour(LearningBaseBehaviour):  # pylint: disable=too-many-anc
         with self.context.benchmark_tool.measure(self.behaviour_id).local():
             sender = self.context.agent_address
 
-            price = yield from self.get_token_price_specs()
+            # Get OLAS/ETH Price from API
+            price_from_api = yield from self.get_token_price_specs()
+            self.context.logger.info(f"price_from_api: {price_from_api}")
+         
+            # Store the OLAS/ETH price in IPFS
+            eth_price_ipfs_hash = yield from self.send_price_to_ipfs(price_from_api)
+            self.context.logger.info(f"price_ipfs_hash: {eth_price_ipfs_hash}")
+
+            # Read the OLAS/ETH price from IPFS
+            price_read_from_ipfs = yield from self.get_price_from_ipfs(eth_price_ipfs_hash)
+            self.context.logger.info(f"price_read_from_ipfs: {price_read_from_ipfs}")
 
             payload = DataPullPayload(
                 sender=sender,
-                price=price,
-                price_ipfs_hash=0,
+                price=price_read_from_ipfs.get('olas_eth_price'),
+                price_ipfs_hash=eth_price_ipfs_hash,
                 native_balance=0,
                 erc20_balance=0,
             )
@@ -327,6 +337,25 @@ class DataPull2Behaviour(LearningBaseBehaviour):  # pylint: disable=too-many-anc
         # Get the price
         price = response.get("eth", None)
         self.context.logger.info(f"Got token eth price from Coingecko: {price}")
+        return price
+
+    def send_price_to_ipfs(self, price) -> Generator[None, None, Optional[str]]:
+        """Store the olas/eth price in IPFS"""
+        data = {"olas_eth_price": price}
+        price_ipfs_hash = yield from self.send_to_ipfs(
+            filename=self.metadata_filepath, obj=data, filetype=SupportedFiletype.JSON
+        )
+        self.context.logger.info(
+            f"OLAS/ETH Price data stored in IPFS: https://gateway.autonolas.tech/ipfs/{price_ipfs_hash}"
+        )
+        return price_ipfs_hash
+
+    def get_price_from_ipfs(self, ipfs_hash : str) -> Generator[None, None, Optional[dict]]:
+        """Load the price data from IPFS"""
+        price = yield from self.get_from_ipfs(
+            ipfs_hash=ipfs_hash, filetype=SupportedFiletype.JSON
+        )
+        self.context.logger.error(f"Got price from IPFS: {price}")
         return price
 
 
