@@ -84,6 +84,11 @@ class SynchronizedData(BaseSynchronizedData):
         return self.db.get("erc20_balance", None)
 
     @property
+    def erc20_total_supply(self) -> Optional[float]:
+        """Get the erc20 total supply."""
+        return self.db.get("erc20_total_supply", None)
+
+    @property
     def participant_to_data_round(self) -> DeserializedCollection:
         """Agent to payload mapping for the DataPullRound."""
         return self._get_deserialized("participant_to_data_round")
@@ -128,6 +133,7 @@ class DataPullRound(CollectSameUntilThresholdRound):
         get_name(SynchronizedData.price_ipfs_hash),
         get_name(SynchronizedData.native_balance),
         get_name(SynchronizedData.erc20_balance),
+        get_name(SynchronizedData.erc20_total_supply),
     )
 
     # Event.ROUND_TIMEOUT  # this needs to be referenced for static checkers

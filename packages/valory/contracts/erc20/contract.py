@@ -51,6 +51,18 @@ class ERC20(Contract):
         return dict(token=token_balance, wallet=wallet_balance)
 
     @classmethod
+    def total_supply(
+        cls,
+        ledger_api: EthereumApi,
+        contract_address: str,
+    ) -> JSONLike:
+        """Check the total supply of the OLAS token."""
+        contract_instance = cls.get_instance(ledger_api, contract_address)
+        total_supply = getattr(contract_instance.functions, "totalSupply")  # noqa
+        token_total_supply = total_supply().call()
+        return dict(total_supply=token_total_supply)
+
+    @classmethod
     def get_allowance(
         cls,
         ledger_api: EthereumApi,
