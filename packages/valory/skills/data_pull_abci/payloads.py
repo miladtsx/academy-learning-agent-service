@@ -17,7 +17,7 @@
 #
 # ------------------------------------------------------------------------------
 
-"""This module contains the transaction payloads of the LearningAbciApp."""
+"""This module contains the transaction payloads of the DataPullAbciApp."""
 
 from dataclasses import dataclass
 from typing import Optional
@@ -26,15 +26,11 @@ from packages.valory.skills.abstract_round_abci.base import BaseTxPayload
 
 
 @dataclass(frozen=True)
-class DecisionMakingPayload(BaseTxPayload):
-    """Represent a transaction payload for the DecisionMakingRound."""
+class DataPullPayload(BaseTxPayload):
+    """Represent a transaction payload for the DataPullRound."""
 
-    event: str
-
-
-@dataclass(frozen=True)
-class TxPreparationPayload(BaseTxPayload):
-    """Represent a transaction payload for the TxPreparationRound."""
-
-    tx_submitter: Optional[str] = None
-    tx_hash: Optional[str] = None
+    price: Optional[float]
+    price_ipfs_hash: Optional[str]
+    native_balance: Optional[float]
+    erc20_balance: Optional[float]
+    erc20_total_supply: Optional[float]

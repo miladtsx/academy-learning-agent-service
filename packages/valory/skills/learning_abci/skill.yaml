@@ -7,13 +7,13 @@ license: Apache-2.0
 aea_version: '>=1.0.0, <2.0.0'
 fingerprint:
   __init__.py: bafybeiho3lkochqpmes4f235chq26oggmwnol3vjuvhosleoubbjirbwaq
-  behaviours.py: bafybeigbm7fdh3lqnk5qmowikclbjyvvpfyvihzo2jyqgoh3iy6mwg5zvm
+  behaviours.py: bafybeiax3ot6dfmmia5jduf3fiqzhp2mlqqknuzkwapy6wfdnmhaq6mo3e
   dialogues.py: bafybeifqjbumctlffx2xvpga2kcenezhe47qhksvgmaylyp5ypwqgfar5u
-  fsm_specification.yaml: bafybeid762aa6a3mafrbntcoqtfanznghfdzb4uwtgzer7ap6secmot4fm
+  fsm_specification.yaml: bafybeibcphu7pnydpyvpa4icnupmflplb6bwrrzpompyhfp2qfiizlx3p4
   handlers.py: bafybeigjadr4thz6hfpfx5abezbwnqhbxmachf4efasrn4z2vqhsqgnyvi
-  models.py: bafybeiejfinsr22nypyt665ugkuspbizjcgbybg5dtoptxp7eyxbk3prse
-  payloads.py: bafybeibflsvrmw6qmxgg76dyxnial6vgde7y4b7hzvv5asudq22jlzbtgm
-  rounds.py: bafybeigzusfomgoh6puz7iupi4vgdtbhdjquukqb5o4bwioghb4ypaslay
+  models.py: bafybeiapmx6tzdhhbimb2ibxia43tjyas64qoqdiauexrp33qcmydgx32u
+  payloads.py: bafybeiguumm3fhozcfb5ql73sxuf2mwylafrled2lrtraqquhd6khaab54
+  rounds.py: bafybeidht4kdaby2zykloicjfdiguybmooyyxqnzmkug5jkbd7y7zq4lni
 fingerprint_ignore_patterns: []
 connections: []
 contracts:
@@ -126,42 +126,10 @@ models:
       tx_timeout: 10.0
       validate_timeout: 1205
       service_endpoint_base: https://learning.autonolas.tech/
-      coingecko_price_template: https://api.coingecko.com/api/v3/simple/price?ids=autonolas&vs_currencies=usd&x_cg_demo_api_key={api_key}
-      coingecko_api_key: null
       transfer_target_address: '0x0000000000000000000000000000000000000000'
       olas_token_address: '0xcE11e14225575945b8E6Dc0D4F2dD4C570f79d9f'
       multisend_address: '0xA238CBeb142c10Ef7Ad8442C6D1f9E89e07e7761'
     class_name: Params
-  coingecko_specs:
-    args:
-      api_id: coingecko
-      headers:
-        Accept: application/json
-      method: GET
-      parameters:
-        ids: autonolas
-        vs_currencies: usd
-        x_cg_demo_api_key: null
-      response_key: autonolas
-      response_type: dict
-      retries: 5
-      url: https://api.coingecko.com/api/v3/simple/price
-    class_name: CoingeckoSpecs
-  olas_eth_pair_price_specs:
-    args:
-      api_id: coingecko
-      headers:
-        Accept: application/json
-      method: GET
-      parameters:
-        ids: autonolas
-        vs_currencies: eth
-        x_cg_demo_api_key: null
-      response_key: autonolas
-      response_type: dict
-      retries: 5
-      url: https://api.coingecko.com/api/v3/simple/price
-    class_name: CoingeckoETHSpecs
   requests:
     args: {}
     class_name: Requests

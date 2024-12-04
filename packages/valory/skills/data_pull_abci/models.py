@@ -17,11 +17,11 @@
 #
 # ------------------------------------------------------------------------------
 
-"""This module contains the shared state for the abci skill of LearningAbciApp."""
+"""This module contains the shared state for the abci skill of DataPullAbciApp."""
 
 from typing import Any
 
-from packages.valory.skills.abstract_round_abci.models import BaseParams
+from packages.valory.skills.abstract_round_abci.models import ApiSpecs, BaseParams
 from packages.valory.skills.abstract_round_abci.models import (
     BenchmarkTool as BaseBenchmarkTool,
 )
@@ -29,13 +29,13 @@ from packages.valory.skills.abstract_round_abci.models import Requests as BaseRe
 from packages.valory.skills.abstract_round_abci.models import (
     SharedState as BaseSharedState,
 )
-from packages.valory.skills.learning_abci.rounds import LearningAbciApp
+from packages.valory.skills.data_pull_abci.rounds import DataPullAbciApp
 
 
 class SharedState(BaseSharedState):
     """Keep the current shared state of the skill."""
 
-    abci_app_cls = LearningAbciApp
+    abci_app_cls = DataPullAbciApp
 
 
 Requests = BaseRequests
@@ -47,12 +47,18 @@ class Params(BaseParams):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         """Initialize the parameters object."""
-        self.transfer_target_address = self._ensure(
-            "transfer_target_address", kwargs, str
+        self.coingecko_price_template = self._ensure(
+            "coingecko_price_template", kwargs, str
         )
+        self.coingecko_api_key = kwargs.get("coingecko_api_key", None)
         self.olas_token_address = kwargs.get("olas_token_address", "")
 
-        # multisend address is used in other skills, so we cannot pop it using _ensure
-        self.multisend_address = kwargs.get("multisend_address", "")
-
         super().__init__(*args, **kwargs)
+
+
+class CoingeckoSpecs(ApiSpecs):
+    """A model that wraps ApiSpecs for Coingecko API."""
+
+
+class CoingeckoETHSpecs(ApiSpecs):
+    """A model that wraps ApiSpecs for the second Coingecko API."""

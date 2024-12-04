@@ -1,0 +1,22 @@
+alphabet_in:
+- DONE
+- ERROR
+- NO_MAJORITY
+- ROUND_TIMEOUT
+default_start_state: DataPullRound
+final_states:
+- IPFSPullRound
+label: DataPullAbciApp
+start_states:
+- DataPullRound
+states:
+- DataPullRound
+- IPFSPullRound
+- FinishedDataPullRound
+transition_func:
+    (DataPullRound, DONE): IPFSPullRound
+    (DataPullRound, NO_MAJORITY): DataPullRound
+    (DataPullRound, ROUND_TIMEOUT): DataPullRound
+    (IPFSPullRound, DONE): FinishedDataPullRound
+    (IPFSPullRound, NO_MAJORITY): DataPullRound
+    (IPFSPullRound, ROUND_TIMEOUT): IPFSPullRound
