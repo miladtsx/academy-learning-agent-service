@@ -35,7 +35,6 @@ from packages.valory.skills.abstract_round_abci.base import (
     get_name,
 )
 from packages.valory.skills.learning_abci.payloads import (
-    DataPullPayload,
     DecisionMakingPayload,
     TxPreparationPayload,
 )
@@ -64,39 +63,9 @@ class SynchronizedData(BaseSynchronizedData):
         return CollectionRound.deserialize_collection(serialized)
 
     @property
-    def price(self) -> Optional[float]:
-        """Get the token price."""
-        return self.db.get("price", None)
-
-    @property
-    def price_ipfs_hash(self) -> Optional[str]:
-        """Get the price_ipfs_hash."""
-        return self.db.get("price_ipfs_hash", None)
-
-    @property
     def native_balance(self) -> Optional[float]:
         """Get the native balance."""
         return self.db.get("native_balance", None)
-
-    @property
-    def erc20_balance(self) -> Optional[float]:
-        """Get the erc20 balance."""
-        return self.db.get("erc20_balance", None)
-
-    @property
-    def erc20_total_supply(self) -> Optional[float]:
-        """Get the erc20 total supply."""
-        return self.db.get("erc20_total_supply", None)
-
-    @property
-    def participant_to_data_round(self) -> DeserializedCollection:
-        """Agent to payload mapping for the DataPullRound."""
-        return self._get_deserialized("participant_to_data_round")
-
-    @property
-    def olas_eth_pair_price(self) -> DeserializedCollection:
-        """Agent to payload mapping for the second DataPullRound."""
-        return self._get_deserialized("olas_eth_pair_price")
 
     @property
     def most_voted_tx_hash(self) -> Optional[float]:
@@ -112,46 +81,6 @@ class SynchronizedData(BaseSynchronizedData):
     def tx_submitter(self) -> str:
         """Get the round that submitted a tx to transaction_settlement_abci."""
         return str(self.db.get_strict("tx_submitter"))
-
-
-class DataPullRound(CollectSameUntilThresholdRound):
-    """DataPullRound"""
-
-    payload_class = DataPullPayload
-    synchronized_data_class = SynchronizedData
-    done_event = Event.DONE
-    no_majority_event = Event.NO_MAJORITY
-
-    # Collection key specifies where in the synchronized data the agento to payload mapping will be stored
-    collection_key = get_name(SynchronizedData.participant_to_data_round)
-
-    # Selection key specifies how to extract all the different objects from each agent's payload
-    # and where to store it in the synchronized data. Notice that the order follows the same order
-    # from the payload class.
-    selection_key = (
-        get_name(SynchronizedData.price),
-        get_name(SynchronizedData.price_ipfs_hash),
-        get_name(SynchronizedData.native_balance),
-        get_name(SynchronizedData.erc20_balance),
-        get_name(SynchronizedData.erc20_total_supply),
-    )
-
-    # Event.ROUND_TIMEOUT  # this needs to be referenced for static checkers
-
-
-class DataPullOlasEthPriceRound(CollectSameUntilThresholdRound):
-    """DataPullOlasEthPriceRound"""
-
-    payload_class = DataPullPayload
-    synchronized_data_class = SynchronizedData
-    done_event = Event.DONE
-    no_majority_event = Event.NO_MAJORITY
-
-    collection_key = get_name(SynchronizedData.olas_eth_pair_price)
-
-    selection_key = (get_name(SynchronizedData.olas_eth_pair_price))
-
-    # Event.ROUND_TIMEOUT  # this needs to be referenced for static checkers
 
 
 class DecisionMakingRound(CollectSameUntilThresholdRound):
@@ -206,21 +135,11 @@ class FinishedTxPreparationRound(DegenerateRound):
 class LearningAbciApp(AbciApp[Event]):
     """LearningAbciApp"""
 
-    initial_round_cls: AppState = DataPullRound
+    initial_round_cls: AppState = DecisionMakingRound
     initial_states: Set[AppState] = {
-        DataPullRound,
+        DecisionMakingRound,
     }
     transition_function: AbciAppTransitionFunction = {
-        DataPullRound: {
-            Event.NO_MAJORITY: DataPullRound,
-            Event.ROUND_TIMEOUT: DataPullRound,
-            Event.DONE: DataPullOlasEthPriceRound,
-        },
-        DataPullOlasEthPriceRound: {
-            Event.NO_MAJORITY: DataPullOlasEthPriceRound,
-            Event.ROUND_TIMEOUT: DataPullOlasEthPriceRound,
-            Event.DONE: DecisionMakingRound,
-        },
         DecisionMakingRound: {
             Event.NO_MAJORITY: DecisionMakingRound,
             Event.ROUND_TIMEOUT: DecisionMakingRound,
@@ -243,7 +162,7 @@ class LearningAbciApp(AbciApp[Event]):
     event_to_timeout: EventToTimeout = {}
     cross_period_persisted_keys: FrozenSet[str] = frozenset()
     db_pre_conditions: Dict[AppState, Set[str]] = {
-        DataPullRound: set(),
+        DecisionMakingRound: set(),
     }
     db_post_conditions: Dict[AppState, Set[str]] = {
         FinishedDecisionMakingRound: set(),

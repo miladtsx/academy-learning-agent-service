@@ -25,6 +25,7 @@ start_states:
 - RegistrationStartupRound
 states:
 - DataPullRound
+- IPFSPullRound
 - CheckLateTxHashesRound
 - CheckTransactionHistoryRound
 - CollectSignatureRound
@@ -42,9 +43,12 @@ states:
 - TxPreparationRound
 - ValidateTransactionRound
 transition_func:
-    (DataPullRound, DONE): DecisionMakingRound
+    (DataPullRound, DONE): IPFSPullRound
     (DataPullRound, NO_MAJORITY): DataPullRound
     (DataPullRound, ROUND_TIMEOUT): DataPullRound
+    (IPFSPullRound, DONE): DecisionMakingRound
+    (IPFSPullRound, NO_MAJORITY): DataPullRound
+    (IPFSPullRound, ROUND_TIMEOUT): IPFSPullRound
     (CheckLateTxHashesRound, CHECK_LATE_ARRIVING_MESSAGE): SynchronizeLateMessagesRound
     (CheckLateTxHashesRound, CHECK_TIMEOUT): CheckLateTxHashesRound
     (CheckLateTxHashesRound, DONE): ResetAndPauseRound
