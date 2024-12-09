@@ -26,25 +26,28 @@ from packages.valory.skills.abstract_round_abci.base import BaseTxPayload
 
 
 @dataclass(frozen=True)
-class DataPullPayload(BaseTxPayload):
-    """Represent a transaction payload for the DataPullRound."""
+class InvoicesPayload(BaseTxPayload):
+    """represents a tx payload for the Invoices in JSON format"""
 
-    price: Optional[float]
-    price_ipfs_hash: Optional[str]
-    native_balance: Optional[float]
-    erc20_balance: Optional[float]
+    invoices: Optional[str]
 
 
 @dataclass(frozen=True)
 class DecisionMakingPayload(BaseTxPayload):
-    """Represent a transaction payload for the DecisionMakingRound."""
+    """Represent a transaction payload for the settled invoices in the DecisionMakingRound."""
 
-    event: str
+    settled_invoices_uuid: str
 
 
 @dataclass(frozen=True)
-class TxPreparationPayload(BaseTxPayload):
-    """Represent a transaction payload for the TxPreparationRound."""
+class KeeperPayload(BaseTxPayload):
+    """Represent a transaction payload for the selected keeper."""
 
-    tx_submitter: Optional[str] = None
-    tx_hash: Optional[str] = None
+    selected_keeper: str
+
+
+@dataclass(frozen=True)
+class ConfirmationResultPayload(BaseTxPayload):
+    """Represent a transaction payload for the ConfirmationResultPayload."""
+
+    is_webhook_ok: bool
