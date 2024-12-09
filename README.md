@@ -1,6 +1,19 @@
-## Learning Service
+# DCPay
+DCPay (Decentralized Cryptocurrency Payment Gateway) is a tool that helps businesses accept cryptocurrency payments in a safe and independent way. It uses decentralized software to manage invoices, track payments, and confirm transactions securely. Payment records are stored on IPFS for easy access and long-term safety. With simple integration into business websites, DCPay makes handling cryptocurrency payments reliable, scalable, and easy to use, without needing middlemen.
 
-A service to learn about [Olas](https://olas.network/) agents and [Open Autonomy](https://github.com/valory-xyz/open-autonomy).
+
+## Rounds
+- CollectInvoicesRound
+    Read Invoices [API]
+        For Demo, read invoices from a json file.
+        If no Invoice exists, wait for 10s and try again.
+- DecisionMakingRound
+    Monitor Invoice Settlement On-Chain [Ledger]
+- SelectKeeperRound
+    Select a keepr to invoke the webhook (DRAND [API])
+- ConfirmationRound
+    Confirm Settlement via Webhook [API]
+- Reset and Start Again
 
 
 ## System requirements
@@ -101,3 +114,8 @@ A service to learn about [Olas](https://olas.network/) agents and [Open Autonomy
     ```
     docker logs -f learningservice_abci_0
     ```
+
+# TODO
+1. Automate the requirement installation
+2. Read invoices from the API instead of `invoices.json`
+3. Should the Agent keep IPFS hashes in Smart Contract?

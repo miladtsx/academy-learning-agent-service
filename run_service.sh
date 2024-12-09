@@ -36,6 +36,14 @@ cp $REPO_PATH/.env .
 # Copy the keys and build the deployment
 cp $REPO_PATH/keys.json .
 
+# Ensure the invoices directory is copied correctly
+if [ -d "$REPO_PATH/invoices" ]; then
+  cp -r $REPO_PATH/invoices .
+else
+  echo "Error: The invoices directory does not exist at $REPO_PATH/invoices."
+  exit 1
+fi
+
 autonomy deploy build -ltm
 
 # Run the deployment
