@@ -24,7 +24,10 @@ from abc import ABC
 from pathlib import Path
 from tempfile import mkdtemp
 from typing import Dict, Generator, Optional, Set, Type, cast
-from packages.valory.skills.learning_abci.models import Invoice
+from packages.valory.skills.learning_abci.models import ( 
+    Invoice,
+    ETHLogsSpecs
+)
 
 from packages.valory.skills.abstract_round_abci.base import AbstractRound
 from packages.valory.skills.abstract_round_abci.behaviours import (
@@ -84,6 +87,11 @@ class LearningBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-anc
     def coingecko_specs(self) -> CoingeckoSpecs:
         """Get the Coingecko api specs."""
         return self.context.coingecko_specs
+
+    @property
+    def ethlogs_specs(self) -> ETHLogsSpecs:
+        """Get the ETHLOGS api specs."""
+        return self.context.eth_logs_specs
 
     @property
     def metadata_filepath(self) -> str:
@@ -208,14 +216,12 @@ class DecisionMakingBehaviour(
                     self.context.logger.info(
                         f"Processing unsettled invoice: {invoice.uuid}"
                     )
-
-                    invoice.is_settled = self.is_invoice_settled(invoice=invoice)
-
+                    invoice.is_settled = yield from self.is_invoice_settled(invoice=invoice)
                     if invoice.is_settled:
                         # identify the settled invoices
                         new_settled_invoices_uuids.append(invoice.uuid)
 
-            self.update_mock_invoices(invoices)
+            # self.update_mock_invoices(invoices)
 
             new_settled_invoices_uuids_stringified: str = ""
 
@@ -245,12 +251,32 @@ class DecisionMakingBehaviour(
 
         self.set_done()
 
-    def is_invoice_settled(self, invoice: Invoice) -> Generator[None, None, bool]:
+    def is_invoice_settled(self, invoice: Invoice) -> Generator[None, None, any]:
         # TODO query on-chain
         self.context.logger.info(
             f"Checking if the invoice: {invoice.uuid} is settled ..."
         )
+        logs = yield from self.fetch_on_chain_logs()
+        print(logs)
+
         return True
+
+    def fetch_on_chain_logs(self) -> Generator[None, None, any]:
+        print("FETCH_ON_CHAIN_LOGS")
+        specs = self.ethlogs_specs.get_spec()
+        print("specs")
+        print(specs)
+
+        print("HAYA")
+        raw_response = yield from self.get_http_response(**specs)
+
+        # response = self.ethlogs_specs.process_response(raw_response)
+
+        print("HAYA 2")
+        print(raw_response)
+        return True
+        # print(response)
+        # return response
 
     def update_mock_invoices(self, invoices: set[Invoice]):
         # TODO MOCK BACKEND - UPDATE THE INVOICES

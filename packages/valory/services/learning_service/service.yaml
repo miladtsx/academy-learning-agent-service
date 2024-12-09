@@ -7,7 +7,7 @@ license: Apache-2.0
 fingerprint:
   README.md: bafybeid42pdrf6qrohedylj4ijrss236ai6geqgf3he44huowiuf7pl464
 fingerprint_ignore_patterns: []
-agent: valory/learning_agent:0.1.0:bafybeidi35q5yxb343in5xw2r7r74kldww2k7tqcckmvkikyk3fxieou5e
+agent: valory/learning_agent:0.1.0:bafybeihjvwhem7mpifrr54viwlginb2tguerav5sh7z4lr2pugfc6neiue
 number_of_agents: 4
 deployment:
   agent:
@@ -108,6 +108,24 @@ extra:
         response_type: dict
         retries: 5
         url: https://api.coingecko.com/api/v3/simple/price
+    eth_logs_specs:
+      args:
+        api_id: eth_logs
+        headers:
+          Accept: application/json
+        method: POST
+        parameters:
+          jsonrpc: 2.0
+          id: 0
+          method: eth_getLogs
+          params:
+          - fromBlock: 21363785
+          - toBlock: latest
+          - address: 917551056842671309452305380979543736893630245704
+        response_key: result
+        response_type: dict
+        retries: 5
+        url: https://virtual.mainnet.rpc.tenderly.co/72d32eec-bc40-4ef8-8235-c402a9d17d73
 1:
   models:
     benchmark_tool:
@@ -169,6 +187,24 @@ extra:
         response_type: dict
         retries: 5
         url: https://api.coingecko.com/api/v3/simple/price
+    eth_logs_specs:
+      args:
+        api_id: eth_logs
+        headers:
+          Accept: application/json
+        method: POST
+        parameters:
+          jsonrpc: 2.0
+          id: 0
+          method: eth_getLogs
+          params:
+          - fromBlock: 21363785
+          - toBlock: latest
+          - address: 917551056842671309452305380979543736893630245704
+        response_key: result
+        response_type: dict
+        retries: 5
+        url: https://virtual.mainnet.rpc.tenderly.co/72d32eec-bc40-4ef8-8235-c402a9d17d73
 2:
   models:
     benchmark_tool:
@@ -230,6 +266,24 @@ extra:
         response_type: dict
         retries: 5
         url: https://api.coingecko.com/api/v3/simple/price
+    eth_logs_specs:
+      args:
+        api_id: eth_logs
+        headers:
+          Accept: application/json
+        method: POST
+        parameters:
+          jsonrpc: 2.0
+          id: 0
+          method: eth_getLogs
+          params:
+          - fromBlock: 21363785
+          - toBlock: latest
+          - address: 917551056842671309452305380979543736893630245704
+        response_key: result
+        response_type: dict
+        retries: 5
+        url: https://virtual.mainnet.rpc.tenderly.co/72d32eec-bc40-4ef8-8235-c402a9d17d73
 3:
   models:
     benchmark_tool:
@@ -291,6 +345,24 @@ extra:
         response_type: dict
         retries: 5
         url: https://api.coingecko.com/api/v3/simple/price
+    eth_logs_specs:
+      args:
+        api_id: eth_logs
+        headers:
+          Accept: application/json
+        method: POST
+        parameters:
+          jsonrpc: 2.0
+          id: 0
+          method: eth_getLogs
+          params:
+          - fromBlock: 21363785
+          - toBlock: latest
+          - address: 917551056842671309452305380979543736893630245704
+        response_key: result
+        response_type: dict
+        retries: 5
+        url: https://virtual.mainnet.rpc.tenderly.co/72d32eec-bc40-4ef8-8235-c402a9d17d73
 ---
 public_id: valory/ledger:0.19.0
 type: connection

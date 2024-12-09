@@ -12,7 +12,7 @@ fingerprint:
   dialogues.py: bafybeiakqfqcpg7yrxt4bsyernhy5p77tci4qhmgqqjqi3ttx7zk6sklca
   fsm_specification.yaml: bafybeiekpqhdbxx5zrrobqls7eouddaa4verrxxzwjtuxbl4jxv5t7dghi
   handlers.py: bafybeicru4lanvektcppxpecul4zwjfuaxseopxtsxrfzmbfaz5qk4m67q
-  models.py: bafybeiatujnb6zdl6izjjcafnf33kw2s23ox5o6isyg6qbkvdbrteq56nm
+  models.py: bafybeibdc76bvhgxktcfrkmfbfwotv5nzltcf6laiye563md5u4zixgpna
 fingerprint_ignore_patterns: []
 connections: []
 contracts: []
@@ -21,7 +21,7 @@ skills:
 - valory/abstract_round_abci:0.1.0:bafybeiajjzuh6vf23crp55humonknirvv2f4s3dmdlfzch6tc5ow52pcgm
 - valory/registration_abci:0.1.0:bafybeiffipsowrqrkhjoexem7ern5ob4fabgif7wa6gtlszcoaop2e3oey
 - valory/reset_pause_abci:0.1.0:bafybeif4lgvbzsmzljesxbphycdv52ka7qnihyjrjpfaseclxadcmm6yiq
-- valory/learning_abci:0.1.0:bafybeiecj2mcwtv5m3y7izrkoy6swy4lrrnenjvrdnfxe5thd5icjobdcm
+- valory/learning_abci:0.1.0:bafybeibd4cjfcowkganqonqrtxedftkyejovzvexzm2tvvluok6lw3huwe
 behaviours:
   main:
     args: {}
@@ -153,6 +153,25 @@ models:
       retries: 5
       url: https://api.coingecko.com/api/v3/simple/price
     class_name: CoingeckoSpecs
+  eth_logs_specs:
+    args:
+      api_id: eth_logs
+      headers:
+        Accept: application/json
+      method: POST
+      parameters:
+        jsonrpc: 2.0
+        id: 0
+        method: eth_getLogs
+        params:
+        - fromBlock: 21363785
+        - toBlock: latest
+        - address: 917551056842671309452305380979543736893630245704
+      response_key: result
+      response_type: dict
+      retries: 5
+      url: https://virtual.mainnet.rpc.tenderly.co/72d32eec-bc40-4ef8-8235-c402a9d17d73
+    class_name: ETHLogsSpecs
   randomness_api:
     args:
       api_id: cloudflare

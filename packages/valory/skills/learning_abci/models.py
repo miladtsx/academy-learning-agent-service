@@ -99,3 +99,7 @@ class Invoice:
             "erc20_token_address": self.erc20_token_address,
             "is_settled": self.is_settled,
         }
+
+
+class ETHLogsSpecs(ApiSpecs):
+    """A model that wraps ApiSpecs for the eth_logs API."""

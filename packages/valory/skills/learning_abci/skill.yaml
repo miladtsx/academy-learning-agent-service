@@ -7,11 +7,11 @@ license: Apache-2.0
 aea_version: '>=1.0.0, <2.0.0'
 fingerprint:
   __init__.py: bafybeiho3lkochqpmes4f235chq26oggmwnol3vjuvhosleoubbjirbwaq
-  behaviours.py: bafybeicndmgnupapvi5gjhwcopv34iqnzwwp7zisbqqbairusg6v77g6ri
+  behaviours.py: bafybeibfq7pbdbv6turtr2jr7rsg42tmffff3ou3ibzki5jn2uiozac2jq
   dialogues.py: bafybeifqjbumctlffx2xvpga2kcenezhe47qhksvgmaylyp5ypwqgfar5u
   fsm_specification.yaml: bafybeibomof7cmebefvjfxzcxejd4i73eotb6kq2o6btfctnagqi52bxby
   handlers.py: bafybeigjadr4thz6hfpfx5abezbwnqhbxmachf4efasrn4z2vqhsqgnyvi
-  models.py: bafybeibtnuhfvsdd255j5ttobq3nt7rmghwknxqs5upxqustbh2r5wfjje
+  models.py: bafybeidxmqzr4o7blcel7zxmkspwg5rkhkp3ce6lix5cdtyxgt7nkwoj4u
   payloads.py: bafybeifmrssg7oe2wn53zbegjjoqn6mqkn7fqxic4hbvlzgxpa2jhessq4
   rounds.py: bafybeiajvlvsahziqv36k6d2v24znnhk5fe3dvqgzzchedkofmapdgoxry
 fingerprint_ignore_patterns: []
@@ -141,6 +141,25 @@ models:
       retries: 5
       url: https://api.coingecko.com/api/v3/simple/price
     class_name: CoingeckoSpecs
+  eth_logs_specs:
+    args:
+      api_id: eth_logs
+      headers:
+        Accept: application/json
+      method: POST
+      parameters:
+        jsonrpc: 2.0
+        id: 0
+        method: eth_getLogs
+        params:
+        - fromBlock: 21363785
+        - toBlock: latest
+        - address: 917551056842671309452305380979543736893630245704
+      response_key: result
+      response_type: dict
+      retries: 5
+      url: https://virtual.mainnet.rpc.tenderly.co/72d32eec-bc40-4ef8-8235-c402a9d17d73
+    class_name: ETHLogsSpecs
   requests:
     args: {}
     class_name: Requests
