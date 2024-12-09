@@ -119,9 +119,10 @@ extra:
           id: 0
           method: eth_getLogs
           params:
-          - fromBlock: 21363785
-          - toBlock: latest
-          - address: 917551056842671309452305380979543736893630245704
+          - fromBlock: "21363785"
+            toBlock: "latest"
+            address: 
+              - "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
         response_key: result
         response_type: dict
         retries: 5
@@ -198,9 +199,10 @@ extra:
           id: 0
           method: eth_getLogs
           params:
-          - fromBlock: 21363785
-          - toBlock: latest
-          - address: 917551056842671309452305380979543736893630245704
+          - fromBlock: "21363785"
+            toBlock: "latest"
+            address: 
+              - "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
         response_key: result
         response_type: dict
         retries: 5
@@ -277,9 +279,10 @@ extra:
           id: 0
           method: eth_getLogs
           params:
-          - fromBlock: 21363785
-          - toBlock: latest
-          - address: 917551056842671309452305380979543736893630245704
+          - fromBlock: "21363785"
+            toBlock: "latest"
+            address: 
+              - "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
         response_key: result
         response_type: dict
         retries: 5
@@ -356,9 +359,10 @@ extra:
           id: 0
           method: eth_getLogs
           params:
-          - fromBlock: 21363785
-          - toBlock: latest
-          - address: 917551056842671309452305380979543736893630245704
+          - fromBlock: "21363785"
+            toBlock: "latest"
+            address: 
+              - "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
         response_key: result
         response_type: dict
         retries: 5
