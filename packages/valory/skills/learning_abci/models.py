@@ -19,7 +19,7 @@
 
 """This module contains the shared state for the abci skill of LearningAbciApp."""
 
-from typing import Any
+from typing import Any, Dict, Optional
 
 from packages.valory.skills.abstract_round_abci.models import ApiSpecs, BaseParams
 from packages.valory.skills.abstract_round_abci.models import (
@@ -64,3 +64,38 @@ class Params(BaseParams):
 
 class CoingeckoSpecs(ApiSpecs):
     """A model that wraps ApiSpecs for Coingecko API."""
+
+
+class Invoice:
+    """Represents an invoice."""
+
+    def __init__(
+        self,
+        uuid: str,
+        sender_wallet_address: str,
+        receiver_wallet_address: str,
+        amount_in_wei: int,
+        chain_id: int,
+        erc20_token_address: str,
+        is_settled: Optional[bool] = False,
+    ) -> None:
+        """Initialize the invoice with the provided parameters."""
+        self.uuid = uuid
+        self.sender_wallet_address = sender_wallet_address
+        self.receiver_wallet_address = receiver_wallet_address
+        self.amount_in_wei = amount_in_wei
+        self.chain_id = chain_id
+        self.erc20_token_address = erc20_token_address
+        self.is_settled = is_settled
+
+    def to_dict(self) -> Dict[str, Optional[object]]:
+        """Convert the Invoice instance to a dictionary."""
+        return {
+            "uuid": self.uuid,
+            "sender_wallet_address": self.sender_wallet_address,
+            "receiver_wallet_address": self.receiver_wallet_address,
+            "amount_in_wei": self.amount_in_wei,
+            "chain_id": self.chain_id,
+            "erc20_token_address": self.erc20_token_address,
+            "is_settled": self.is_settled,
+        }
