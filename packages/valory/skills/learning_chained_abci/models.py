@@ -36,7 +36,6 @@ from packages.valory.skills.learning_chained_abci.composition import (
     LearningChainedSkillAbciApp,
 )
 from packages.valory.skills.reset_pause_abci.rounds import Event as ResetPauseEvent
-from packages.valory.skills.termination_abci.models import TerminationParams
 
 
 Requests = BaseRequests
@@ -72,7 +71,6 @@ class SharedState(BaseSharedState):
 
 class Params(  # pylint: disable=too-many-ancestors
     LearningParams,
-    TerminationParams,
 ):
     """A model to represent params for multiple abci apps."""
 
