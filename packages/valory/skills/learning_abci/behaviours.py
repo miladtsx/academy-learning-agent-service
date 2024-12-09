@@ -24,47 +24,32 @@ from abc import ABC
 from pathlib import Path
 from tempfile import mkdtemp
 from typing import Dict, Generator, Optional, Set, Type, cast
+from packages.valory.skills.learning_abci.models import Invoice
 
-from packages.valory.contracts.erc20.contract import ERC20
-from packages.valory.contracts.gnosis_safe.contract import (
-    GnosisSafeContract,
-    SafeOperation,
-)
-from packages.valory.contracts.multisend.contract import (
-    MultiSendContract,
-    MultiSendOperation,
-)
-from packages.valory.protocols.contract_api import ContractApiMessage
-from packages.valory.protocols.ledger_api import LedgerApiMessage
 from packages.valory.skills.abstract_round_abci.base import AbstractRound
 from packages.valory.skills.abstract_round_abci.behaviours import (
     AbstractRoundBehaviour,
     BaseBehaviour,
 )
-from packages.valory.skills.abstract_round_abci.io_.store import SupportedFiletype
 from packages.valory.skills.learning_abci.models import (
     CoingeckoSpecs,
     Params,
     SharedState,
 )
 from packages.valory.skills.learning_abci.payloads import (
-    DataPullPayload,
+    InvoicesPayload,
     DecisionMakingPayload,
-    TxPreparationPayload,
+    KeeperPayload,
+    ConfirmationResultPayload,
 )
 from packages.valory.skills.learning_abci.rounds import (
-    DataPullRound,
+    CollectInvoicesRound,
     DecisionMakingRound,
-    Event,
     LearningAbciApp,
+    SelectKeeperRound,
     SynchronizedData,
-    TxPreparationRound,
+    ConfirmationRound,
 )
-from packages.valory.skills.transaction_settlement_abci.payload_tools import (
-    hash_payload_to_hex,
-)
-from packages.valory.skills.transaction_settlement_abci.rounds import TX_HASH_LENGTH
-
 
 # Define some constants
 ZERO_VALUE = 0
@@ -114,41 +99,41 @@ class LearningBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-anc
         return now
 
 
-class DataPullBehaviour(LearningBaseBehaviour):  # pylint: disable=too-many-ancestors
-    """This behaviours pulls token prices from API endpoints and reads the native balance of an account"""
+class CollectInvoicesBehaviour(
+    LearningBaseBehaviour
+):  # pylint: disable=too-many-ancestors
+    """
+    This behaviours collects the invoices from the business API
 
-    matching_round: Type[AbstractRound] = DataPullRound
+    For the purpose of the Demo, the Invoices are read from a local JSON file.
+    """
+
+    matching_round: Type[AbstractRound] = CollectInvoicesRound
 
     def async_act(self) -> Generator:
         """Do the act, supporting asynchronous execution."""
 
         with self.context.benchmark_tool.measure(self.behaviour_id).local():
-            sender = self.context.agent_address
 
-            # First mehtod to call an API: simple call to get_http_response
-            price = yield from self.get_token_price_simple()
+            # fetch invoices in batch
+            invoices = self.read_invoices()
+            print(f"Invoices read: {invoices}")
 
-            # Second method to call an API: use ApiSpecs
-            # This call replaces the previous price, it is just an example
-            price = yield from self.get_token_price_specs()
+            delay = 10  # TODO make it parametric
+            if not invoices:
+                self.context.logger.info(
+                    f"NO INVOICE FOUND; TRYINGN AGAIN IN {delay} Seconds."
+                )
+                yield from self.sleep(delay)
+                return
 
-            # Store the price in IPFS
-            price_ipfs_hash = yield from self.send_price_to_ipfs(price)
-
-            # Get the native balance
-            native_balance = yield from self.get_native_balance()
-
-            # Get the token balance
-            erc20_balance = yield from self.get_erc20_balance()
-
+            invoices_stringified = json.dumps(
+                [invoice.to_dict() for invoice in invoices]
+            )
             # Prepare the payload to be shared with other agents
             # After consensus, all the agents will have the same price, price_ipfs_hash and balance variables in their synchronized data
-            payload = DataPullPayload(
-                sender=sender,
-                price=price,
-                price_ipfs_hash=price_ipfs_hash,
-                native_balance=native_balance,
-                erc20_balance=erc20_balance,
+            payload = InvoicesPayload(
+                sender=self.context.agent_address, invoices=invoices_stringified
             )
 
         # Send the payload to all agents and mark the behaviour as done
@@ -158,125 +143,35 @@ class DataPullBehaviour(LearningBaseBehaviour):  # pylint: disable=too-many-ance
 
         self.set_done()
 
-    def get_token_price_simple(self) -> Generator[None, None, Optional[float]]:
-        """Get token price from Coingecko usinga simple HTTP request"""
+    def read_invoices(self, limit: int = None) -> Optional[set[Invoice]]:
+        """
+        Read the unsetteled invoices from the Business API
 
-        # Prepare the url and the headers
-        url_template = self.params.coingecko_price_template
-        url = url_template.replace("{api_key}", self.params.coingecko_api_key)
-        headers = {"accept": "application/json"}
+        For the demo, there is a mock JSON file presenting the Invoices
 
-        # Make the HTTP request to Coingecko API
-        response = yield from self.get_http_response(
-            method="GET", url=url, headers=headers
-        )
+        Returns: [Invoice] or None
+        """
+        invoices_path = Path("../invoices/invoices.json").resolve()
 
-        # Handle HTTP errors
-        if response.status_code != HTTP_OK:
-            self.context.logger.error(
-                f"Error while pulling the price from CoinGecko: {response.body}"
-            )
+        if not invoices_path.exists():
+            raise Exception(f"Error: The file {invoices_path} was not found.")
 
-        # Load the response
-        api_data = json.loads(response.body)
-        price = api_data["autonolas"]["usd"]
-
-        self.context.logger.info(f"Got token price from Coingecko: {price}")
-
-        return price
-
-    def get_token_price_specs(self) -> Generator[None, None, Optional[float]]:
-        """Get token price from Coingecko using ApiSpecs"""
-
-        # Get the specs
-        specs = self.coingecko_specs.get_spec()
-
-        # Make the call
-        raw_response = yield from self.get_http_response(**specs)
-
-        # Process the response
-        response = self.coingecko_specs.process_response(raw_response)
-
-        # Get the price
-        price = response.get("usd", None)
-        self.context.logger.info(f"Got token price from Coingecko: {price}")
-        return price
-
-    def send_price_to_ipfs(self, price) -> Generator[None, None, Optional[str]]:
-        """Store the token price in IPFS"""
-        data = {"price": price}
-        price_ipfs_hash = yield from self.send_to_ipfs(
-            filename=self.metadata_filepath, obj=data, filetype=SupportedFiletype.JSON
-        )
-        self.context.logger.info(
-            f"Price data stored in IPFS: https://gateway.autonolas.tech/ipfs/{price_ipfs_hash}"
-        )
-        return price_ipfs_hash
-
-    def get_erc20_balance(self) -> Generator[None, None, Optional[float]]:
-        """Get ERC20 balance"""
-        self.context.logger.info(
-            f"Getting Olas balance for Safe {self.synchronized_data.safe_contract_address}"
-        )
-
-        # Use the contract api to interact with the ERC20 contract
-        response_msg = yield from self.get_contract_api_response(
-            performative=ContractApiMessage.Performative.GET_RAW_TRANSACTION,  # type: ignore
-            contract_address=self.params.olas_token_address,
-            contract_id=str(ERC20.contract_id),
-            contract_callable="check_balance",
-            account=self.synchronized_data.safe_contract_address,
-            chain_id=GNOSIS_CHAIN_ID,
-        )
-
-        # Check that the response is what we expect
-        if response_msg.performative != ContractApiMessage.Performative.RAW_TRANSACTION:
-            self.context.logger.error(
-                f"Error while retrieving the balance: {response_msg}"
-            )
+        try:
+            with invoices_path.open("r", encoding="utf-8") as file:
+                # TODO Load invoices from the API
+                invoices_data = json.load(file)
+                if not invoices_data or not len(invoices_data):
+                    return None
+                # Decerialized Invoice JSON into Object
+                invoices = [Invoice(**invoice) for invoice in invoices_data]
+                # Return only the first 'limit' invoices if 'limit' is provided
+                return invoices if limit is None else invoices[:limit]
+        except json.JSONDecodeError:
+            self.context.logger.error("Error: Failed to decode JSON from the file.")
             return None
-
-        balance = response_msg.raw_transaction.body.get("token", None)
-
-        # Ensure that the balance is not None
-        if balance is None:
-            self.context.logger.error(
-                f"Error while retrieving the balance:  {response_msg}"
-            )
+        except Exception as e:
+            self.context.logger.error(f"An unexpected error occurred: {e}")
             return None
-
-        balance = balance / 10**18  # from wei
-
-        self.context.logger.info(
-            f"Account {self.synchronized_data.safe_contract_address} has {balance} Olas"
-        )
-        return balance
-
-    def get_native_balance(self) -> Generator[None, None, Optional[float]]:
-        """Get the native balance"""
-        self.context.logger.info(
-            f"Getting native balance for Safe {self.synchronized_data.safe_contract_address}"
-        )
-
-        ledger_api_response = yield from self.get_ledger_api_response(
-            performative=LedgerApiMessage.Performative.GET_STATE,
-            ledger_callable="get_balance",
-            account=self.synchronized_data.safe_contract_address,
-            chain_id=GNOSIS_CHAIN_ID,
-        )
-
-        if ledger_api_response.performative != LedgerApiMessage.Performative.STATE:
-            self.context.logger.error(
-                f"Error while retrieving the native balance: {ledger_api_response}"
-            )
-            return None
-
-        balance = cast(int, ledger_api_response.state.body["get_balance_result"])
-        balance = balance / 10**18  # from wei
-
-        self.context.logger.error(f"Got native balance: {balance}")
-
-        return balance
 
 
 class DecisionMakingBehaviour(
@@ -287,15 +182,62 @@ class DecisionMakingBehaviour(
     matching_round: Type[AbstractRound] = DecisionMakingRound
 
     def async_act(self) -> Generator:
-        """Do the act, supporting asynchronous execution."""
+        """Make a decision: are invoices settled."""
 
         with self.context.benchmark_tool.measure(self.behaviour_id).local():
             sender = self.context.agent_address
+            invoices = self.synchronized_data.invoices
 
-            # Make a decision: either transact or not
-            event = yield from self.get_next_event()
+            # Deserialize invoices from JSON string to Invoice objects
+            invoices_json = json.loads(invoices)
+            invoices = [Invoice(**invoice) for invoice in invoices_json]
+            self.context.logger.info(
+                f"Successfully deserialized {len(invoices)} invoices."
+            )
 
-            payload = DecisionMakingPayload(sender=sender, event=event)
+            new_settled_invoices_uuids: list[str] = []
+
+            for invoice in invoices:
+                # Pass invoices that are already settled
+                if invoice.is_settled:
+                    self.context.logger.error(
+                        f"Attempted to process already settled invoice: {invoice.uuid}"
+                    )
+                    continue
+                else:
+                    self.context.logger.info(
+                        f"Processing unsettled invoice: {invoice.uuid}"
+                    )
+
+                    invoice.is_settled = self.is_invoice_settled(invoice=invoice)
+
+                    if invoice.is_settled:
+                        # identify the settled invoices
+                        new_settled_invoices_uuids.append(invoice.uuid)
+
+            self.update_mock_invoices(invoices)
+
+            new_settled_invoices_uuids_stringified: str = ""
+
+            if not len(new_settled_invoices_uuids):
+                self.context.logger.info(
+                    "ALL INVOICES ARE ALREADY SETTLED; FETCHING INVOICES AGAIN IN 10 SECONDS."
+                )
+                # right now, if there is no newly settled invoices, we pass to the next round with an empty settled_invoices_uuid payload. 
+                # instead we should return back to the CollectInvoicesRound. but currently I don't know how to implement this.
+                # yield from self.sleep(10)  # TODO make it parametric
+                # TODO Question: return back to the CollectInvoicesRound round.
+                pass
+            else:
+                new_settled_invoices_uuids_stringified = json.dumps(
+                    new_settled_invoices_uuids
+                )
+                self.context.logger.info(f"Count of newly settled invoices: {len(new_settled_invoices_uuids)}")
+
+            payload = DecisionMakingPayload(
+                sender=sender,
+                settled_invoices_uuid=new_settled_invoices_uuids_stringified,
+            )
 
         with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
             yield from self.send_a2a_transaction(payload)
@@ -303,361 +245,133 @@ class DecisionMakingBehaviour(
 
         self.set_done()
 
-    def get_next_event(self) -> Generator[None, None, str]:
-        """Get the next event: decide whether ot transact or not based on some data."""
-
-        # This method showcases how to make decisions based on conditions.
-        # This is just a dummy implementation.
-
-        # Get the latest block number from the chain
-        block_number = yield from self.get_block_number()
-
-        # Get the balance we calculated in the previous round
-        native_balance = self.synchronized_data.native_balance
-
-        # We stored the price using two approaches: synchronized_data and IPFS
-        # Similarly, we retrieve using the corresponding ways
-        token_price = self.synchronized_data.price
-        token_price = yield from self.get_price_from_ipfs()
-
-        # If we fail to get the block number, we send the ERROR event
-        if not block_number:
-            self.context.logger.info("Block number is None. Sending the ERROR event...")
-            return Event.ERROR.value
-
-        # If we fail to get the token price, we send the ERROR event
-        if not token_price:
-            self.context.logger.info("Token price is None. Sending the ERROR event...")
-            return Event.ERROR.value
-
-        # If we fail to get the token balance, we send the ERROR event
-        if not native_balance:
-            self.context.logger.info(
-                "Native balance is None. Sending the ERROR event..."
-            )
-            return Event.ERROR.value
-
-        # Make a decision based on the balance's last number
-        last_number = int(str(native_balance)[-1])
-
-        # If the number is even, we transact
-        if last_number % 2 == 0:
-            self.context.logger.info("Number is even. Transacting.")
-            return Event.TRANSACT.value
-
-        # Otherwise we send the DONE event
-        self.context.logger.info("Number is odd. Not transacting.")
-        return Event.DONE.value
-
-    def get_block_number(self) -> Generator[None, None, Optional[int]]:
-        """Get the block number"""
-
-        # Call the ledger connection (equivalent to web3.py)
-        ledger_api_response = yield from self.get_ledger_api_response(
-            performative=LedgerApiMessage.Performative.GET_STATE,
-            ledger_callable="get_block_number",
-            chain_id=GNOSIS_CHAIN_ID,
+    def is_invoice_settled(self, invoice: Invoice) -> Generator[None, None, bool]:
+        # TODO query on-chain
+        self.context.logger.info(
+            f"Checking if the invoice: {invoice.uuid} is settled ..."
         )
+        return True
 
-        # Check for errors on the response
-        if ledger_api_response.performative != LedgerApiMessage.Performative.STATE:
-            self.context.logger.error(
-                f"Error while retrieving block number: {ledger_api_response}"
-            )
-            return None
-
-        # Extract and return the block number
-        block_number = cast(
-            int, ledger_api_response.state.body["get_block_number_result"]
-        )
-
-        self.context.logger.error(f"Got block number: {block_number}")
-
-        return block_number
-
-    def get_price_from_ipfs(self) -> Generator[None, None, Optional[dict]]:
-        """Load the price data from IPFS"""
-        ipfs_hash = self.synchronized_data.price_ipfs_hash
-        price = yield from self.get_from_ipfs(
-            ipfs_hash=ipfs_hash, filetype=SupportedFiletype.JSON
-        )
-        self.context.logger.error(f"Got price from IPFS: {price}")
-        return price
+    def update_mock_invoices(self, invoices: set[Invoice]):
+        # TODO MOCK BACKEND - UPDATE THE INVOICES
+        updated_invoices_json = json.dumps([invoice.to_dict() for invoice in invoices])
+        invoices_path = Path("../invoices/invoices.json").resolve()
+        with invoices_path.open("w") as file:
+            file.write(updated_invoices_json)
 
 
-class TxPreparationBehaviour(
+class SelectKeeperBehaviour(
     LearningBaseBehaviour
 ):  # pylint: disable=too-many-ancestors
-    """TxPreparationBehaviour"""
+    """SelectKeeperBehaviour"""
 
-    matching_round: Type[AbstractRound] = TxPreparationRound
+    matching_round: Type[AbstractRound] = SelectKeeperRound
 
     def async_act(self) -> Generator:
         """Do the act, supporting asynchronous execution."""
 
-        with self.context.benchmark_tool.measure(self.behaviour_id).local():
-            sender = self.context.agent_address
+        # TODO select a keeper randomly
+        sender = self.context.agent_address
+        print("selected_keeper_raw", sender)
+        payload = KeeperPayload(sender=sender, selected_keeper=sender)
 
-            # Get the transaction hash
-            tx_hash = yield from self.get_tx_hash()
-
-            payload = TxPreparationPayload(
-                sender=sender, tx_submitter=self.auto_behaviour_id(), tx_hash=tx_hash
-            )
-
-        with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
-            yield from self.send_a2a_transaction(payload)
-            yield from self.wait_until_round_end()
+        yield from self.send_a2a_transaction(payload)
+        yield from self.wait_until_round_end()
 
         self.set_done()
 
-    def get_tx_hash(self) -> Generator[None, None, Optional[str]]:
-        """Get the transaction hash"""
 
-        # Here want to showcase how to prepare different types of transactions.
-        # Depending on the timestamp's last number, we will make a native transaction,
-        # an ERC20 transaction or both.
+class ConfirmationBehaviour(
+    LearningBaseBehaviour
+):  # pylint: disable=too-many-ancestors
+    """ConfirmationBehaviour"""
 
-        # All transactions need to be sent from the Safe controlled by the agents.
+    matching_round: Type[AbstractRound] = ConfirmationRound
 
-        # Again, make a decision based on the timestamp (on its last number)
-        now = int(self.get_sync_timestamp())
-        self.context.logger.info(f"Timestamp is {now}")
-        last_number = int(str(now)[-1])
-
-        # Native transaction (Safe -> recipient)
-        if last_number in [0, 1, 2, 3]:
-            self.context.logger.info("Preparing a native transaction")
-            tx_hash = yield from self.get_native_transfer_safe_tx_hash()
-            return tx_hash
-
-        # ERC20 transaction (Safe -> recipient)
-        if last_number in [4, 5, 6]:
-            self.context.logger.info("Preparing an ERC20 transaction")
-            tx_hash = yield from self.get_erc20_transfer_safe_tx_hash()
-            return tx_hash
-
-        # Multisend transaction (both native and ERC20) (Safe -> recipient)
-        self.context.logger.info("Preparing a multisend transaction")
-        tx_hash = yield from self.get_multisend_safe_tx_hash()
-        return tx_hash
-
-    def get_native_transfer_safe_tx_hash(self) -> Generator[None, None, Optional[str]]:
-        """Prepare a native safe transaction"""
-
-        # Transaction data
-        # This method is not a generator, therefore we don't use yield from
-        data = self.get_native_transfer_data()
-
-        # Prepare safe transaction
-        safe_tx_hash = yield from self._build_safe_tx_hash(**data)
-        self.context.logger.info(f"Native transfer hash is {safe_tx_hash}")
-
-        return safe_tx_hash
-
-    def get_native_transfer_data(self) -> Dict:
-        """Get the native transaction data"""
-        # Send 1 wei to the recipient
-        data = {VALUE_KEY: 1, TO_ADDRESS_KEY: self.params.transfer_target_address}
-        self.context.logger.info(f"Native transfer data is {data}")
-        return data
-
-    def get_erc20_transfer_safe_tx_hash(self) -> Generator[None, None, Optional[str]]:
-        """Prepare an ERC20 safe transaction"""
-
-        # Transaction data
-        data_hex = yield from self.get_erc20_transfer_data()
-
-        # Check for errors
-        if data_hex is None:
-            return None
-
-        # Prepare safe transaction
-        safe_tx_hash = yield from self._build_safe_tx_hash(
-            to_address=self.params.transfer_target_address, data=bytes.fromhex(data_hex)
+    def _i_am_not_sending(self) -> bool:
+        """Indicates if the current agent is the sender or not."""
+        print("self.context.agent_address", self.context.agent_address)
+        print(
+            "self.synchronized_data.selected_keeper",
+            self.synchronized_data.selected_keeper,
         )
+        return self.context.agent_address != self.synchronized_data.selected_keeper
 
-        self.context.logger.info(f"ERC20 transfer hash is {safe_tx_hash}")
+    def async_act(self) -> Generator:
+        """
+        Do the action.
 
-        return safe_tx_hash
+         Steps:
+        - If the agent is the keeper, then invoke the webhook and confirm settlement.
+        - Otherwise, wait until the next round.
+        """
 
-    def get_erc20_transfer_data(self) -> Generator[None, None, Optional[str]]:
-        """Get the ERC20 transaction data"""
+        if self._i_am_not_sending():
+            yield from self._not_sender_act()
+        else:
+            yield from self._sender_act()
 
-        self.context.logger.info("Preparing ERC20 transfer transaction")
+    def _sender_act(self) -> Generator[None, None, None]:
+        """Do the sender action."""
 
-        # Use the contract api to interact with the ERC20 contract
-        response_msg = yield from self.get_contract_api_response(
-            performative=ContractApiMessage.Performative.GET_RAW_TRANSACTION,  # type: ignore
-            contract_address=self.params.olas_token_address,
-            contract_id=str(ERC20.contract_id),
-            contract_callable="build_transfer_tx",
-            recipient=self.params.transfer_target_address,
-            amount=1,
-            chain_id=GNOSIS_CHAIN_ID,
-        )
-
-        # Check that the response is what we expect
-        if response_msg.performative != ContractApiMessage.Performative.RAW_TRANSACTION:
-            self.context.logger.error(
-                f"Error while retrieving the balance: {response_msg}"
-            )
-            return None
-
-        data_bytes: Optional[bytes] = response_msg.raw_transaction.body.get(
-            "data", None
-        )
-
-        # Ensure that the data is not None
-        if data_bytes is None:
-            self.context.logger.error(
-                f"Error while preparing the transaction: {response_msg}"
-            )
-            return None
-
-        data_hex = data_bytes.hex()
-        self.context.logger.info(f"ERC20 transfer data is {data_hex}")
-        return data_hex
-
-    def get_multisend_safe_tx_hash(self) -> Generator[None, None, Optional[str]]:
-        """Get a multisend transaction hash"""
-        # Step 1: we prepare a list of transactions
-        # Step 2: we pack all the transactions in a single one using the mulstisend contract
-        # Step 3: we wrap the multisend call inside a Safe call, as always
-
-        multi_send_txs = []
-
-        # Native transfer
-        native_transfer_data = self.get_native_transfer_data()
-        multi_send_txs.append(
-            {
-                "operation": MultiSendOperation.CALL,
-                "to": self.params.transfer_target_address,
-                "value": native_transfer_data[VALUE_KEY],
-                # No data key in this transaction, since it is a native transfer
-            }
-        )
-
-        # ERC20 transfer
-        erc20_transfer_data_hex = yield from self.get_erc20_transfer_data()
-
-        if erc20_transfer_data_hex is None:
-            return None
-
-        multi_send_txs.append(
-            {
-                "operation": MultiSendOperation.CALL,
-                "to": self.params.olas_token_address,
-                "value": ZERO_VALUE,
-                "data": bytes.fromhex(erc20_transfer_data_hex),
-            }
-        )
-
-        # Multisend call
-        contract_api_msg = yield from self.get_contract_api_response(
-            performative=ContractApiMessage.Performative.GET_RAW_TRANSACTION,  # type: ignore
-            contract_address=self.params.multisend_address,
-            contract_id=str(MultiSendContract.contract_id),
-            contract_callable="get_tx_data",
-            multi_send_txs=multi_send_txs,
-            chain_id=GNOSIS_CHAIN_ID,
-        )
-
-        # Check for errors
-        if (
-            contract_api_msg.performative
-            != ContractApiMessage.Performative.RAW_TRANSACTION
-        ):
-            self.context.logger.error(
-                f"Could not get Multisend tx hash. "
-                f"Expected: {ContractApiMessage.Performative.RAW_TRANSACTION.value}, "
-                f"Actual: {contract_api_msg.performative.value}"
-            )
-            return None
-
-        # Extract the multisend data and strip the 0x
-        multisend_data = cast(str, contract_api_msg.raw_transaction.body["data"])[2:]
-        self.context.logger.info(f"Multisend data is {multisend_data}")
-
-        # Prepare the Safe transaction
-        safe_tx_hash = yield from self._build_safe_tx_hash(
-            to_address=self.params.multisend_address,
-            value=ZERO_VALUE,  # the safe is not moving any native value into the multisend
-            data=bytes.fromhex(multisend_data),
-            operation=SafeOperation.DELEGATE_CALL.value,  # we are delegating the call to the multisend contract
-        )
-        return safe_tx_hash
-
-    def _build_safe_tx_hash(
-        self,
-        to_address: str,
-        value: int = ZERO_VALUE,
-        data: bytes = EMPTY_CALL_DATA,
-        operation: int = SafeOperation.CALL.value,
-    ) -> Generator[None, None, Optional[str]]:
-        """Prepares and returns the safe tx hash for a multisend tx."""
-
+        sender = self.context.agent_address
         self.context.logger.info(
-            f"Preparing Safe transaction [{self.synchronized_data.safe_contract_address}]"
+            "I am the designated sender, attempting to invoke the webhook..."
         )
 
-        # Prepare the safe transaction
-        response_msg = yield from self.get_contract_api_response(
-            performative=ContractApiMessage.Performative.GET_STATE,  # type: ignore
-            contract_address=self.synchronized_data.safe_contract_address,
-            contract_id=str(GnosisSafeContract.contract_id),
-            contract_callable="get_raw_safe_transaction_hash",
-            to_address=to_address,
-            value=value,
-            data=data,
-            safe_tx_gas=SAFE_GAS,
-            chain_id=GNOSIS_CHAIN_ID,
-            operation=operation,
-        )
-
-        # Check for errors
-        if response_msg.performative != ContractApiMessage.Performative.STATE:
-            self.context.logger.error(
-                "Couldn't get safe tx hash. Expected response performative "
-                f"{ContractApiMessage.Performative.STATE.value!r}, "  # type: ignore
-                f"received {response_msg.performative.value!r}: {response_msg}."
+        selected_keeper = self.synchronized_data.selected_keeper
+        result: Dict[str, bool] = {}
+        if self.synchronized_data.settled_invoices_uuid:
+            print(
+                "self.synchronized_data.settled_invoices_uuid",
+                self.synchronized_data.settled_invoices_uuid,
             )
-            return None
+            settled_invoices = json.loads(self.synchronized_data.settled_invoices_uuid)
 
-        # Extract the hash and check it has the correct length
-        tx_hash: Optional[str] = response_msg.state.body.get("tx_hash", None)
+            if len(settled_invoices):
+                print("selected_keeper", selected_keeper)
+                print("settled_invoices", settled_invoices)
 
-        if tx_hash is None or len(tx_hash) != TX_HASH_LENGTH:
-            self.context.logger.error(
-                "Something went wrong while trying to get the safe transaction hash. "
-                f"Invalid hash {tx_hash!r} was returned."
+                for uuid in settled_invoices:
+                    print("SIMULATING WEBHOOK CALL for: ", uuid)
+                    webhook_result = yield from self._call_webhook()
+                    result[uuid] = webhook_result
+            else:
+                pass
+
+            print("len(settled_invoices)", len(settled_invoices))
+        print("webhooks result", result)
+
+        payload = ConfirmationResultPayload(sender=sender, is_webhook_ok=True)
+
+        yield from self.send_a2a_transaction(payload)
+        yield from self.wait_until_round_end()
+
+        self.set_done()
+
+    def _not_sender_act(self) -> Generator:
+        """Do the non-sender action."""
+        with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
+            self.context.logger.info(
+                f"Waiting for the keeper to do its keeping: {self.synchronized_data.selected_keeper}"
             )
-            return None
+            yield from self.wait_until_round_end()
+        self.set_done()
 
-        # Transaction to hex
-        tx_hash = tx_hash[2:]  # strip the 0x
-
-        safe_tx_hash = hash_payload_to_hex(
-            safe_tx_hash=tx_hash,
-            ether_value=value,
-            safe_tx_gas=SAFE_GAS,
-            to_address=to_address,
-            data=data,
-            operation=operation,
-        )
-
-        self.context.logger.info(f"Safe transaction hash is {safe_tx_hash}")
-
-        return safe_tx_hash
+    def _call_webhook(self) -> Generator:
+        # TODO implement
+        yield from self.sleep(3)
+        return True
 
 
 class LearningRoundBehaviour(AbstractRoundBehaviour):
     """LearningRoundBehaviour"""
 
-    initial_behaviour_cls = DataPullBehaviour
+    initial_behaviour_cls = CollectInvoicesBehaviour
     abci_app_cls = LearningAbciApp  # type: ignore
     behaviours: Set[Type[BaseBehaviour]] = [  # type: ignore
-        DataPullBehaviour,
+        CollectInvoicesBehaviour,
         DecisionMakingBehaviour,
-        TxPreparationBehaviour,
+        SelectKeeperBehaviour,
+        ConfirmationBehaviour,
     ]
