@@ -3,29 +3,30 @@ alphabet_in:
 - ERROR
 - NO_MAJORITY
 - ROUND_TIMEOUT
-- TRANSACT
-default_start_state: DataPullRound
+default_start_state: CollectInvoicesRound
 final_states:
-- FinishedDecisionMakingRound
-- FinishedTxPreparationRound
+- FinishedRound
 label: LearningAbciApp
 start_states:
-- DataPullRound
+- CollectInvoicesRound
 states:
-- DataPullRound
+- CollectInvoicesRound
 - DecisionMakingRound
-- FinishedDecisionMakingRound
-- FinishedTxPreparationRound
-- TxPreparationRound
+- SelectKeeperRound
+- ConfirmationRound
+- FinishedRound
 transition_func:
-    (DataPullRound, DONE): DecisionMakingRound
-    (DataPullRound, NO_MAJORITY): DataPullRound
-    (DataPullRound, ROUND_TIMEOUT): DataPullRound
-    (DecisionMakingRound, DONE): FinishedDecisionMakingRound
-    (DecisionMakingRound, ERROR): FinishedDecisionMakingRound
+    (CollectInvoicesRound, DONE): DecisionMakingRound
+    (CollectInvoicesRound, NO_MAJORITY): CollectInvoicesRound
+    (CollectInvoicesRound, ROUND_TIMEOUT): CollectInvoicesRound
+    (DecisionMakingRound, DONE): SelectKeeperRound
+    (DecisionMakingRound, ERROR): DecisionMakingRound
     (DecisionMakingRound, NO_MAJORITY): DecisionMakingRound
     (DecisionMakingRound, ROUND_TIMEOUT): DecisionMakingRound
-    (DecisionMakingRound, TRANSACT): TxPreparationRound
-    (TxPreparationRound, DONE): FinishedTxPreparationRound
-    (TxPreparationRound, NO_MAJORITY): TxPreparationRound
-    (TxPreparationRound, ROUND_TIMEOUT): TxPreparationRound
+    (SelectKeeperRound, DONE): ConfirmationRound
+    (SelectKeeperRound, ERROR): SelectKeeperRound
+    (SelectKeeperRound, NO_MAJORITY): SelectKeeperRound
+    (SelectKeeperRound, ROUND_TIMEOUT): SelectKeeperRound
+    (ConfirmationRound, DONE): FinishedRound
+    (ConfirmationRound, NO_MAJORITY): ConfirmationRound
+    (ConfirmationRound, ROUND_TIMEOUT): ConfirmationRound
