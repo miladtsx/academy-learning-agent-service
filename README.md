@@ -16,6 +16,14 @@ DCPay (Decentralized Cryptocurrency Payment Gateway) is a tool that helps busine
 - Reset and Start Again
 
 
+## TODO
+
+- Read Invoices from Remote API
+- Select Keeper Randomly
+- Store Settlements on IPFS
+- Setup local DB to facilitate Admin Dashboard
+- Call Remote Webhook
+
 ## System requirements
 
 - Python `>=3.10`

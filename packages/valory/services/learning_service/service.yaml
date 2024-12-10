@@ -7,7 +7,7 @@ license: Apache-2.0
 fingerprint:
   README.md: bafybeid42pdrf6qrohedylj4ijrss236ai6geqgf3he44huowiuf7pl464
 fingerprint_ignore_patterns: []
-agent: valory/learning_agent:0.1.0:bafybeihjvwhem7mpifrr54viwlginb2tguerav5sh7z4lr2pugfc6neiue
+agent: valory/learning_agent:0.1.0:bafybeicrxzkw5hdqi72jinfrrlmto5duzr6ndehpekg6yqqoozvju57qxq
 number_of_agents: 4
 deployment:
   agent:
@@ -119,10 +119,10 @@ extra:
           id: 0
           method: eth_getLogs
           params:
-          - fromBlock: "21363785"
-            toBlock: "latest"
-            address: 
-              - "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          - fromBlock: '21363785'
+            toBlock: latest
+            address:
+            - '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
         response_key: result
         response_type: dict
         retries: 5
@@ -199,10 +199,10 @@ extra:
           id: 0
           method: eth_getLogs
           params:
-          - fromBlock: "21363785"
-            toBlock: "latest"
-            address: 
-              - "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          - fromBlock: '21363785'
+            toBlock: latest
+            address:
+            - '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
         response_key: result
         response_type: dict
         retries: 5
@@ -279,10 +279,10 @@ extra:
           id: 0
           method: eth_getLogs
           params:
-          - fromBlock: "21363785"
-            toBlock: "latest"
-            address: 
-              - "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          - fromBlock: '21363785'
+            toBlock: latest
+            address:
+            - '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
         response_key: result
         response_type: dict
         retries: 5
@@ -359,10 +359,10 @@ extra:
           id: 0
           method: eth_getLogs
           params:
-          - fromBlock: "21363785"
-            toBlock: "latest"
-            address: 
-              - "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          - fromBlock: '21363785'
+            toBlock: latest
+            address:
+            - '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
         response_key: result
         response_type: dict
         retries: 5

@@ -29,8 +29,8 @@ protocols:
 skills:
 - valory/abstract_abci:0.1.0:bafybeidz54kvxhbdmpruzguuzzq7bjg4pekjb5amqobkxoy4oqknnobopu
 - valory/abstract_round_abci:0.1.0:bafybeiajjzuh6vf23crp55humonknirvv2f4s3dmdlfzch6tc5ow52pcgm
-- valory/learning_abci:0.1.0:bafybeibd4cjfcowkganqonqrtxedftkyejovzvexzm2tvvluok6lw3huwe
-- valory/learning_chained_abci:0.1.0:bafybeiewic52ir543bcuprlh4us7jvohgr2sdrywoimnz4qqdc45auwroi
+- valory/learning_abci:0.1.0:bafybeiclbplziik3vi6l3zpoorxkw6iouonvz6xz5zqyljdftdmfebatw4
+- valory/learning_chained_abci:0.1.0:bafybeiatbzr73j7euhfjqjmojz2kb22x3nvjx5y6u7hu4bhfpoy4slc6ee
 - valory/registration_abci:0.1.0:bafybeiffipsowrqrkhjoexem7ern5ob4fabgif7wa6gtlszcoaop2e3oey
 - valory/reset_pause_abci:0.1.0:bafybeif4lgvbzsmzljesxbphycdv52ka7qnihyjrjpfaseclxadcmm6yiq
 default_ledger: ethereum
@@ -225,10 +225,10 @@ models:
         id: 0
         method: eth_getLogs
         params:
-        - fromBlock: "21363785"
-          toBlock: "latest"
-          address: 
-            - "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+        - fromBlock: '21363785'
+          toBlock: latest
+          address:
+          - '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
       response_key: result
       response_type: dict
       retries: 5

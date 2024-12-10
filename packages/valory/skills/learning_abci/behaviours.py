@@ -106,52 +106,7 @@ class LearningBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-anc
 
         return now
 
-
-class CollectInvoicesBehaviour(
-    LearningBaseBehaviour
-):  # pylint: disable=too-many-ancestors
-    """
-    This behaviours collects the invoices from the business API
-
-    For the purpose of the Demo, the Invoices are read from a local JSON file.
-    """
-
-    matching_round: Type[AbstractRound] = CollectInvoicesRound
-
-    def async_act(self) -> Generator:
-        """Do the act, supporting asynchronous execution."""
-
-        with self.context.benchmark_tool.measure(self.behaviour_id).local():
-
-            # fetch invoices in batch
-            invoices = self.read_invoices()
-            print(f"Invoices read: {invoices}")
-
-            delay = 10  # TODO make it parametric
-            if not invoices:
-                self.context.logger.info(
-                    f"NO INVOICE FOUND; TRYINGN AGAIN IN {delay} Seconds."
-                )
-                yield from self.sleep(delay)
-                return
-
-            invoices_stringified = json.dumps(
-                [invoice.to_dict() for invoice in invoices]
-            )
-            # Prepare the payload to be shared with other agents
-            # After consensus, all the agents will have the same price, price_ipfs_hash and balance variables in their synchronized data
-            payload = InvoicesPayload(
-                sender=self.context.agent_address, invoices=invoices_stringified
-            )
-
-        # Send the payload to all agents and mark the behaviour as done
-        with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
-            yield from self.send_a2a_transaction(payload)
-            yield from self.wait_until_round_end()
-
-        self.set_done()
-
-    def read_invoices(self, limit: int = None) -> Optional[set[Invoice]]:
+    def read_invoices_from_api(self, limit: int = None) -> Optional[set[Invoice]]:
         """
         Read the unsetteled invoices from the Business API
 
@@ -171,7 +126,10 @@ class CollectInvoicesBehaviour(
                 if not invoices_data or not len(invoices_data):
                     return None
                 # Decerialized Invoice JSON into Object
-                invoices = [Invoice(**invoice) for invoice in invoices_data]
+                # Filter invoices to include only those where 'is_settled' is False or does not exist
+                invoices = [Invoice(**invoice) for invoice in invoices_data if 
+                            'is_settled' not in invoice or not invoice['is_settled']
+                            ]
                 # Return only the first 'limit' invoices if 'limit' is provided
                 return invoices if limit is None else invoices[:limit]
         except json.JSONDecodeError:
@@ -180,6 +138,74 @@ class CollectInvoicesBehaviour(
         except Exception as e:
             self.context.logger.error(f"An unexpected error occurred: {e}")
             return None
+
+    def update_mock_invoices_bulk(self, invoices: set[Invoice]):
+        # TODO MOCK BACKEND - UPDATE THE INVOICES
+        updated_invoices_json = json.dumps([invoice.to_dict() for invoice in invoices])
+        invoices_path = Path("../invoices/invoices.json").resolve()
+        with invoices_path.open("w") as file:
+            file.write(updated_invoices_json)
+
+    def read_invoices_from_shared_memory(self) -> Optional[set[Invoice]]:
+        try:
+
+            invoices = self.synchronized_data.invoices
+
+            # Deserialize invoices from JSON string to Invoice objects
+            invoices_json = json.loads(invoices)
+            invoices = [Invoice(**invoice) for invoice in invoices_json]
+            return invoices
+        except Exception:
+            return None
+
+
+class CollectInvoicesBehaviour(
+    LearningBaseBehaviour
+):  # pylint: disable=too-many-ancestors
+    """
+    This behaviours collects the invoices from the business API
+
+    For the purpose of the Demo, the Invoices are read from a local JSON file.
+    """
+
+    matching_round: Type[AbstractRound] = CollectInvoicesRound
+
+    def async_act(self) -> Generator:
+        """Do the act, supporting asynchronous execution."""
+
+        with self.context.benchmark_tool.measure(self.behaviour_id).local():
+
+            # fetch invoices in batch
+            invoices = self.read_invoices_from_api()
+            print(f"Invoices read: {invoices}")
+
+            delay = 10  # TODO make it parametric
+            if not invoices:
+                self.context.logger.info(
+                    f"NO INVOICE FOUND; TRYINGN AGAIN IN {delay} Seconds."
+                )
+                yield from self.sleep(delay)
+                return
+            else:
+                self.context.logger.info(
+                    f"{len(invoices)} INVOICE(s) FOUND;"
+                )
+
+            invoices_stringified = json.dumps(
+                [invoice.to_dict() for invoice in invoices]
+            )
+            # Prepare the payload to be shared with other agents
+            # After consensus, all the agents will have the same price, price_ipfs_hash and balance variables in their synchronized data
+            payload = InvoicesPayload(
+                sender=self.context.agent_address, invoices=invoices_stringified
+            )
+
+        # Send the payload to all agents and mark the behaviour as done
+        with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
+            yield from self.send_a2a_transaction(payload)
+            yield from self.wait_until_round_end()
+
+        self.set_done()
 
 
 class DecisionMakingBehaviour(
@@ -193,56 +219,34 @@ class DecisionMakingBehaviour(
         """Make a decision: are invoices settled."""
 
         with self.context.benchmark_tool.measure(self.behaviour_id).local():
-            sender = self.context.agent_address
-            invoices = self.synchronized_data.invoices
 
-            # Deserialize invoices from JSON string to Invoice objects
-            invoices_json = json.loads(invoices)
-            invoices = [Invoice(**invoice) for invoice in invoices_json]
-            self.context.logger.info(
-                f"Successfully deserialized {len(invoices)} invoices."
-            )
+            invoices = self.read_invoices_from_shared_memory()
 
             new_settled_invoices_uuids: list[str] = []
 
             for invoice in invoices:
-                # Pass invoices that are already settled
                 if invoice.is_settled:
-                    self.context.logger.error(
-                        f"Attempted to process already settled invoice: {invoice.uuid}"
-                    )
+                    self.context.logger.error(f"invoice {invoice.uuid} is already settled.")
                     continue
                 else:
-                    self.context.logger.info(
-                        f"Processing unsettled invoice: {invoice.uuid}"
-                    )
-                    invoice.is_settled = yield from self.is_invoice_settled(invoice=invoice)
+                    invoice.is_settled = self.process_invoice_settlement(invoice=invoice)
                     if invoice.is_settled:
-                        # identify the settled invoices
+                        # list the newly settled invoices
                         new_settled_invoices_uuids.append(invoice.uuid)
-
-            # self.update_mock_invoices(invoices)
-
-            new_settled_invoices_uuids_stringified: str = ""
 
             if not len(new_settled_invoices_uuids):
                 self.context.logger.info(
-                    "ALL INVOICES ARE ALREADY SETTLED; FETCHING INVOICES AGAIN IN 10 SECONDS."
-                )
-                # right now, if there is no newly settled invoices, we pass to the next round with an empty settled_invoices_uuid payload. 
+                    "All invoices are already settled; nothing to do"
+                )  # TODO return to the previosu round (CollectInvoicesRound).
+                # currently, when no newly settled invoices, agent just passes to the next round with an empty settled_invoices_uuid payload. 
                 # instead we should return back to the CollectInvoicesRound. but currently I don't know how to implement this.
-                # yield from self.sleep(10)  # TODO make it parametric
-                # TODO Question: return back to the CollectInvoicesRound round.
                 pass
             else:
-                new_settled_invoices_uuids_stringified = json.dumps(
-                    new_settled_invoices_uuids
-                )
-                self.context.logger.info(f"Count of newly settled invoices: {len(new_settled_invoices_uuids)}")
+                self.context.logger.info(f"{len(new_settled_invoices_uuids)} NEW INVOICE(s) SETTLED: ")
 
             payload = DecisionMakingPayload(
-                sender=sender,
-                settled_invoices_uuid=new_settled_invoices_uuids_stringified,
+                sender=self.context.agent_address,
+                settled_invoices_uuid=json.dumps(new_settled_invoices_uuids),
             )
 
         with self.context.benchmark_tool.measure(self.behaviour_id).consensus():
@@ -251,39 +255,21 @@ class DecisionMakingBehaviour(
 
         self.set_done()
 
-    def is_invoice_settled(self, invoice: Invoice) -> Generator[None, None, any]:
+    def process_invoice_settlement(self, invoice: Invoice) -> Generator[None, None, any]:
+        self.context.logger.info(f"Processing unsettled invoice: {invoice.uuid}")
         # TODO query on-chain
-        self.context.logger.info(
-            f"Checking if the invoice: {invoice.uuid} is settled ..."
-        )
-        logs = yield from self.fetch_on_chain_logs()
-        print(logs)
-
+        # yield from self.fetch_on_chain_logs()
+        yield from self.sleep(3)
         return True
 
     def fetch_on_chain_logs(self) -> Generator[None, None, any]:
-        print("FETCH_ON_CHAIN_LOGS")
+        print("FETCHING_ON_CHAIN_LOGS")
         specs = self.ethlogs_specs.get_spec()
-        print("specs")
         print(specs)
-
-        print("HAYA")
         raw_response = yield from self.get_http_response(**specs)
-
         # response = self.ethlogs_specs.process_response(raw_response)
-
-        print("HAYA 2")
         print(raw_response)
         return True
-        # print(response)
-        # return response
-
-    def update_mock_invoices(self, invoices: set[Invoice]):
-        # TODO MOCK BACKEND - UPDATE THE INVOICES
-        updated_invoices_json = json.dumps([invoice.to_dict() for invoice in invoices])
-        invoices_path = Path("../invoices/invoices.json").resolve()
-        with invoices_path.open("w") as file:
-            file.write(updated_invoices_json)
 
 
 class SelectKeeperBehaviour(
@@ -297,7 +283,7 @@ class SelectKeeperBehaviour(
         """Do the act, supporting asynchronous execution."""
 
         # TODO select a keeper randomly
-        sender = self.context.agent_address
+        sender = "0x9D039cc6BbE62a6B4b11CB8e6b7862373459Fb1e"
         print("selected_keeper_raw", sender)
         payload = KeeperPayload(sender=sender, selected_keeper=sender)
 
@@ -345,28 +331,22 @@ class ConfirmationBehaviour(
             "I am the designated sender, attempting to invoke the webhook..."
         )
 
-        selected_keeper = self.synchronized_data.selected_keeper
-        result: Dict[str, bool] = {}
-        if self.synchronized_data.settled_invoices_uuid:
-            print(
-                "self.synchronized_data.settled_invoices_uuid",
-                self.synchronized_data.settled_invoices_uuid,
-            )
-            settled_invoices = json.loads(self.synchronized_data.settled_invoices_uuid)
+        settled_invoices_uuid_json = self.synchronized_data.settled_invoices_uuid
 
-            if len(settled_invoices):
-                print("selected_keeper", selected_keeper)
-                print("settled_invoices", settled_invoices)
-
-                for uuid in settled_invoices:
-                    print("SIMULATING WEBHOOK CALL for: ", uuid)
-                    webhook_result = yield from self._call_webhook()
-                    result[uuid] = webhook_result
-            else:
-                pass
-
-            print("len(settled_invoices)", len(settled_invoices))
-        print("webhooks result", result)
+        if settled_invoices_uuid_json:
+            # Load the settled invoices from the synchronized data
+            settled_invoices_uuid: list[str] = json.loads(settled_invoices_uuid_json)
+            # Get all invoices from the synchronized data
+            all_unsettled_invoices: list[Invoice] = self.read_invoices_from_shared_memory()
+            # Iterate through all invoices to update those that are settled
+            for invoice in all_unsettled_invoices:
+                # if the invoice is settled
+                if invoice.uuid in settled_invoices_uuid:
+                    # inform the business via the webhook
+                    invoice.is_settled = yield from self._call_webhook(invoice.uuid)
+                    self.context.logger.info(f"INVOICE {invoice.uuid} PROCESSED; is_settled: {invoice.is_settled}")
+            
+            self.update_mock_invoices_bulk(all_unsettled_invoices)
 
         payload = ConfirmationResultPayload(sender=sender, is_webhook_ok=True)
 
@@ -384,8 +364,9 @@ class ConfirmationBehaviour(
             yield from self.wait_until_round_end()
         self.set_done()
 
-    def _call_webhook(self) -> Generator:
+    def _call_webhook(self, uuid) -> Generator:
         # TODO implement
+        print("CALLING WEBHOOK FOR: ", uuid)
         yield from self.sleep(3)
         return True
 

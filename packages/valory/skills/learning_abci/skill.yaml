@@ -7,7 +7,7 @@ license: Apache-2.0
 aea_version: '>=1.0.0, <2.0.0'
 fingerprint:
   __init__.py: bafybeiho3lkochqpmes4f235chq26oggmwnol3vjuvhosleoubbjirbwaq
-  behaviours.py: bafybeibfq7pbdbv6turtr2jr7rsg42tmffff3ou3ibzki5jn2uiozac2jq
+  behaviours.py: bafybeihwyil3563wluzvp3szdyalcgoociurgi5hwnpmqvkmi772v3f52i
   dialogues.py: bafybeifqjbumctlffx2xvpga2kcenezhe47qhksvgmaylyp5ypwqgfar5u
   fsm_specification.yaml: bafybeibomof7cmebefvjfxzcxejd4i73eotb6kq2o6btfctnagqi52bxby
   handlers.py: bafybeigjadr4thz6hfpfx5abezbwnqhbxmachf4efasrn4z2vqhsqgnyvi
@@ -152,10 +152,10 @@ models:
         id: 0
         method: eth_getLogs
         params:
-        - fromBlock: "21363785"
-          toBlock: "latest"
-          address: 
-            - "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+        - fromBlock: '21363785'
+          toBlock: latest
+          address:
+          - '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
       response_key: result
       response_type: dict
       retries: 5
