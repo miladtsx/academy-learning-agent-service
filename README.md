@@ -1,7 +1,14 @@
 # DCPay
+![image](https://github.com/user-attachments/assets/e1aba625-9e73-4d05-8f89-f234aed5e561)
+
 DCPay is a decentralized cryptocurrency payment gateway that enables businesses to accept crypto payments securely and independently. Built on the OLAS stack, it leverages decentralization and consensus to ensure reliability and trust, with payment records stored on IPFS for long-term accessibility and security.
 
-# OLAS Functionalities Used
+
+
+
+
+## OLAS Functionalities Used
+- Decentralized Consensus based decision making
 - API
 - IPFS
 
@@ -9,7 +16,7 @@ DCPay is a decentralized cryptocurrency payment gateway that enables businesses 
 - CollectInvoicesRound
     Read Invoices [API]
         For Demo, read invoices from a json file.
-        If no Invoice exists, wait for 10s and try again.
+        If no Invoice exists, wait for 10s and try again.  
 - DecisionMakingRound
     Monitor Invoice Settlement On-Chain [API]
     Keep Settled Invoices Records on [IPFS]
@@ -18,6 +25,14 @@ DCPay is a decentralized cryptocurrency payment gateway that enables businesses 
 - ConfirmationRound
     Confirm Settlement via Webhook [API]
 - Reset and Start Again
+
+
+## Flow
+![image](https://github.com/user-attachments/assets/be623460-2679-43cb-b1bb-aa3418b24a7f)
+![image](https://github.com/user-attachments/assets/529ae371-93ae-42a7-a1c4-675e5f9d1961)
+![image](https://github.com/user-attachments/assets/05d3bd89-2641-4e2d-bf70-1bc0156fdb63)
+![image](https://github.com/user-attachments/assets/1f84fd2b-e46c-4794-8454-92da93565c0e)
+![image](https://github.com/user-attachments/assets/a86633b0-de31-4a64-b43f-4697d56e8b8a)
 
 
 ## TODO
