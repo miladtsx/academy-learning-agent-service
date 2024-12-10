@@ -127,9 +127,7 @@ class LearningBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-anc
                     return None
                 # Decerialized Invoice JSON into Object
                 # Filter invoices to include only those where 'is_settled' is False or does not exist
-                invoices = [Invoice(**invoice) for invoice in invoices_data if 
-                            'is_settled' not in invoice or not invoice['is_settled']
-                            ]
+                invoices = [Invoice(**invoice) for invoice in invoices_data]
                 # Return only the first 'limit' invoices if 'limit' is provided
                 return invoices if limit is None else invoices[:limit]
         except json.JSONDecodeError:
@@ -224,12 +222,14 @@ class DecisionMakingBehaviour(
 
             new_settled_invoices_uuids: list[str] = []
 
+            latest_logs = yield from self.fetch_on_chain_logs()
+
             for invoice in invoices:
                 if invoice.is_settled:
                     self.context.logger.error(f"invoice {invoice.uuid} is already settled.")
                     continue
                 else:
-                    invoice.is_settled = self.process_invoice_settlement(invoice=invoice)
+                    invoice.is_settled = self.process_invoice_settlement(invoice=invoice, logs=latest_logs)
                     if invoice.is_settled:
                         # list the newly settled invoices
                         new_settled_invoices_uuids.append(invoice.uuid)
@@ -255,21 +255,78 @@ class DecisionMakingBehaviour(
 
         self.set_done()
 
-    def process_invoice_settlement(self, invoice: Invoice) -> Generator[None, None, any]:
+    def process_invoice_settlement(self, invoice: Invoice, logs: dict) -> Generator[None, None, any]:
         self.context.logger.info(f"Processing unsettled invoice: {invoice.uuid}")
-        # TODO query on-chain
-        # yield from self.fetch_on_chain_logs()
-        yield from self.sleep(3)
-        return True
 
-    def fetch_on_chain_logs(self) -> Generator[None, None, any]:
-        print("FETCHING_ON_CHAIN_LOGS")
-        specs = self.ethlogs_specs.get_spec()
-        print(specs)
-        raw_response = yield from self.get_http_response(**specs)
-        # response = self.ethlogs_specs.process_response(raw_response)
-        print(raw_response)
-        return True
+        # Parameters to check
+        expected_sender = invoice.sender_wallet_address
+        expected_receiver = invoice.receiver_wallet_address
+        expected_amount = invoice.amount_in_wei
+
+        for log in logs:
+            token_address = log["address"]
+            sender = "0x" + log["topics"][1][26:]  # Extract the last 20 bytes
+            receiver = "0x" + log["topics"][2][26:]
+            amount = int(log["data"], 16)  # Decode data to integer
+            
+            # Does it match
+            if (
+                sender.lower() == expected_sender.lower() and 
+                receiver.lower() == expected_receiver.lower() and 
+                amount == expected_amount
+            ):
+                tx_hash = log["transactionHash"]
+                self.context.logger.info(f"Invoice {invoice.uuid} is settled at {tx_hash}")
+                return True
+        return False
+
+    def fetch_on_chain_logs(self) -> Generator[None, None, Optional[dict]]:
+        """Get token logs using a JSON-RPC request."""
+
+        # Prepare the JSON-RPC request payload
+        payload = {
+            "jsonrpc": "2.0",
+            "id": 0,
+            "method": "eth_getLogs",
+            "params": [
+                {
+                    "fromBlock": "21363785",
+                    "toBlock": "latest",
+                    "address": ["0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"],  #USDC token make it parameter
+                    "topics": ["0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"]
+                }
+            ]
+        }
+
+        # Prepare the url and the headers
+        url = "https://virtual.mainnet.rpc.tenderly.co/72d32eec-bc40-4ef8-8235-c402a9d17d73"   #TODO parameterize it.
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+        }
+
+        # Make the HTTP request
+        response = yield from self.get_http_response(
+            method="POST", url=url, headers=headers,
+            content=json.dumps(payload)
+        )
+
+        # Handle HTTP errors
+        if response.status_code != HTTP_OK:
+            self.context.logger.error(
+                f"Error while pulling logs: {response.body}"
+            )
+
+        # Parse the JSON response
+        try:
+            api_data = json.loads(response.body)
+            logs = api_data.get("result", [])
+            return logs
+        except (KeyError, json.JSONDecodeError) as e:
+            self.context.logger.error(
+                f"Error decoding JSON response: {str(e)}"
+            )
+            return None
 
 
 class SelectKeeperBehaviour(
@@ -367,60 +424,8 @@ class ConfirmationBehaviour(
     def _call_webhook(self, uuid) -> Generator:
         # TODO implement
         print("CALLING WEBHOOK FOR: ", uuid)
-        logs = yield from self.get_token_logs()
-        print("logs")
-        print(logs)
         yield from self.sleep(3)
         return True
-
-    def get_token_logs(self) -> Generator[None, None, Optional[dict]]:
-        """Get token logs using a JSON-RPC request."""
-
-        # Prepare the JSON-RPC request payload
-        payload = {
-            "jsonrpc": "2.0",
-            "id": 0,
-            "method": "eth_getLogs",
-            "params": [
-                {
-                    "fromBlock": "21363785",
-                    "toBlock": "latest",
-                    "address": ["0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"]
-                }
-            ]
-        }
-
-        # Prepare the url and the headers
-        url = "https://virtual.mainnet.rpc.tenderly.co/72d32eec-bc40-4ef8-8235-c402a9d17d73"
-        headers = {
-            "Content-Type": "application/json",
-            "Accept": "application/json"
-        }
-
-        # Make the HTTP request to Coingecko API
-        response = yield from self.get_http_response(
-            method="POST", url=url, headers=headers,
-            content=payload
-        )
-
-        # Handle HTTP errors
-        if response.status_code != HTTP_OK:
-            self.context.logger.error(
-                f"Error while pulling logs: {response.body}"
-            )
-
-        # Parse the JSON response
-        try:
-            api_data = json.loads(response.body)
-            logs = api_data.get("result", [])
-
-            self.context.logger.info(f"Got logs: {logs}")
-            return logs
-        except (KeyError, json.JSONDecodeError) as e:
-            self.context.logger.error(
-                f"Error decoding JSON response: {str(e)}"
-            )
-            return None
 
 
 class LearningRoundBehaviour(AbstractRoundBehaviour):

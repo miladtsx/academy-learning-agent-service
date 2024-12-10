@@ -76,7 +76,6 @@ class Invoice:
         receiver_wallet_address: str,
         amount_in_wei: int,
         chain_id: int,
-        erc20_token_address: str,
         is_settled: Optional[bool] = False,
     ) -> None:
         """Initialize the invoice with the provided parameters."""
@@ -85,7 +84,6 @@ class Invoice:
         self.receiver_wallet_address = receiver_wallet_address
         self.amount_in_wei = amount_in_wei
         self.chain_id = chain_id
-        self.erc20_token_address = erc20_token_address
         self.is_settled = is_settled
 
     def to_dict(self) -> Dict[str, Optional[object]]:
@@ -96,7 +94,6 @@ class Invoice:
             "receiver_wallet_address": self.receiver_wallet_address,
             "amount_in_wei": self.amount_in_wei,
             "chain_id": self.chain_id,
-            "erc20_token_address": self.erc20_token_address,
             "is_settled": self.is_settled,
         }
 
