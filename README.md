@@ -61,7 +61,8 @@ DCPay is a decentralized cryptocurrency payment gateway that enables businesses 
 1. Clone this repo:
 
     ```
-    git clone git@github.com:valory-xyz/academy-learning-service.git
+    git clone git@github.com:miladtsx/academy-learning-service.git
+   
     ```
 
 2. Create the virtual environment:
@@ -88,11 +89,9 @@ DCPay is a decentralized cryptocurrency payment gateway that enables businesses 
 
 2. Prepare a `ethereum_private_key.txt` file containing one of the private keys from `keys.json`. Ensure that there is no newline at the end.
 
-3. Deploy two [Safes on Gnosis](https://app.safe.global/welcome) (it's free) and set your agent addresses as signers. Set the signature threshold to 1 out of 4 for one of them and and to 3 out of 4 for the other. This way we can use the single-signer one for testing without running all the agents, and leave the other safe for running the whole service.
+3. Create a [Tenderly](https://tenderly.co/) account and from your dashboard create a fork of ETHEREUM chain (virtual testnet).
 
-4. Create a [Tenderly](https://tenderly.co/) account and from your dashboard create a fork of Gnosis chain (virtual testnet).
-
-5. From Tenderly, fund your agents and Safe with some xDAI and OLAS (`0xcE11e14225575945b8E6Dc0D4F2dD4C570f79d9f`).
+4. From Tenderly, fund your agents and Safe with some ETH and USDC (`0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48`).
 
 6. Make a copy of the env file:
 
@@ -103,10 +102,6 @@ DCPay is a decentralized cryptocurrency payment gateway that enables businesses 
 7. Fill in the required environment variables in .env. These variables are:
 - `ALL_PARTICIPANTS`: a list of your agent addresses. This will vary depending on whether you are running a single agent (`run_agent.sh` script) or the whole 4-agent service (`run_service.sh`)
 - `GNOSIS_LEDGER_RPC`: set it to your Tenderly fork Admin RPC.
-- `COINGECKO_API_KEY`: you will need to get a free [Coingecko](https://www.coingecko.com/) API key.
-- `TRANSFER_TARGET_ADDRESS`: any random address to send funds to, can be any of the agents for example.
-- `SAFE_CONTRACT_ADDRESS_SINGLE`: the 1 out of 4 agents Safe address.
-- `SAFE_CONTRACT_ADDRESS`: the 3 out of 4 Safe address.
 
 
 ### Run a single agent locally
@@ -140,8 +135,3 @@ DCPay is a decentralized cryptocurrency payment gateway that enables businesses 
     ```
     docker logs -f learningservice_abci_0
     ```
-
-# TODO
-1. Automate the requirement installation
-2. Read invoices from the API instead of `invoices.json`
-3. Should the Agent keep IPFS hashes in Smart Contract?
