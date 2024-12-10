@@ -367,8 +367,60 @@ class ConfirmationBehaviour(
     def _call_webhook(self, uuid) -> Generator:
         # TODO implement
         print("CALLING WEBHOOK FOR: ", uuid)
+        logs = yield from self.get_token_logs()
+        print("logs")
+        print(logs)
         yield from self.sleep(3)
         return True
+
+    def get_token_logs(self) -> Generator[None, None, Optional[dict]]:
+        """Get token logs using a JSON-RPC request."""
+
+        # Prepare the JSON-RPC request payload
+        payload = {
+            "jsonrpc": "2.0",
+            "id": 0,
+            "method": "eth_getLogs",
+            "params": [
+                {
+                    "fromBlock": "21363785",
+                    "toBlock": "latest",
+                    "address": ["0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"]
+                }
+            ]
+        }
+
+        # Prepare the url and the headers
+        url = "https://virtual.mainnet.rpc.tenderly.co/72d32eec-bc40-4ef8-8235-c402a9d17d73"
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+        }
+
+        # Make the HTTP request to Coingecko API
+        response = yield from self.get_http_response(
+            method="POST", url=url, headers=headers,
+            content=payload
+        )
+
+        # Handle HTTP errors
+        if response.status_code != HTTP_OK:
+            self.context.logger.error(
+                f"Error while pulling logs: {response.body}"
+            )
+
+        # Parse the JSON response
+        try:
+            api_data = json.loads(response.body)
+            logs = api_data.get("result", [])
+
+            self.context.logger.info(f"Got logs: {logs}")
+            return logs
+        except (KeyError, json.JSONDecodeError) as e:
+            self.context.logger.error(
+                f"Error decoding JSON response: {str(e)}"
+            )
+            return None
 
 
 class LearningRoundBehaviour(AbstractRoundBehaviour):
