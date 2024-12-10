@@ -2,7 +2,7 @@
 ![image](https://github.com/user-attachments/assets/e1aba625-9e73-4d05-8f89-f234aed5e561)
 
 DCPay is a decentralized cryptocurrency payment gateway that enables businesses to accept crypto payments securely and independently. Built on the OLAS stack, it leverages decentralization and consensus to ensure reliability and trust, with payment records stored on IPFS for long-term accessibility and security.
-
+[more details](https://docs.google.com/document/d/1KC4O3u80VcUfUFCL4joMqhe22K09v7dChJSlvPrj4jQ/).
 
 
 
