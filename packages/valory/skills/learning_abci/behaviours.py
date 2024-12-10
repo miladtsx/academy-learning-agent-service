@@ -236,7 +236,7 @@ class DecisionMakingBehaviour(
 
             if not len(new_settled_invoices_uuids):
                 self.context.logger.info(
-                    "All invoices are already settled; nothing to do"
+                    "NO NEW SETTLED INVOICE FOUND; nothing to do"
                 )  # TODO return to the previosu round (CollectInvoicesRound).
                 # currently, when no newly settled invoices, agent just passes to the next round with an empty settled_invoices_uuid payload. 
                 # instead we should return back to the CollectInvoicesRound. but currently I don't know how to implement this.
@@ -401,7 +401,7 @@ class ConfirmationBehaviour(
                 if invoice.uuid in settled_invoices_uuid:
                     # inform the business via the webhook
                     invoice.is_settled = yield from self._call_webhook(invoice.uuid)
-                    self.context.logger.info(f"INVOICE {invoice.uuid} PROCESSED; is_settled: {invoice.is_settled}")
+                    self.context.logger.info(f"INVOICE {invoice.uuid} PROCESSED")
             
             self.update_mock_invoices_bulk(all_unsettled_invoices)
 
