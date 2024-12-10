@@ -154,11 +154,14 @@ class LearningBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-anc
             invoices_json = json.loads(invoices)
             invoices = [Invoice(**invoice) for invoice in invoices_json]
             return invoices
-        except Exception:
+        except Exception as e:
+            self.context.logger.error(
+                f"Failed to read invoice data from memory {e}"
+            )
             return None
 
     def keep_record_on_ipfs(self, uuid : str, hash : str) -> Generator[None, None, Optional[str]]:
-        """Store the olas/eth price in IPFS"""
+        """Store the Invoice Settlement on IPFS"""
         data = {
             "uuid": uuid,
             "hash": hash
@@ -190,7 +193,6 @@ class CollectInvoicesBehaviour(
 
             # fetch invoices in batch
             invoices = self.read_invoices_from_api()
-            print(f"Invoices read: {invoices}")
 
             delay = 10  # TODO make it parametric
             if not invoices:
@@ -244,7 +246,7 @@ class DecisionMakingBehaviour(
                     self.context.logger.error(f"invoice {invoice.uuid} is already settled.")
                     continue
                 else:
-                    invoice.is_settled = self.process_invoice_settlement(invoice=invoice, logs=latest_logs)
+                    invoice.is_settled = yield from self.process_invoice_settlement(invoice=invoice, logs=latest_logs)
                     if invoice.is_settled:
                         # list the newly settled invoices
                         new_settled_invoices_uuids.append(invoice.uuid)
@@ -290,7 +292,7 @@ class DecisionMakingBehaviour(
                 amount == expected_amount
             ):
                 tx_hash = log["transactionHash"]
-                self.keep_record_on_ipfs(invoice.uuid, tx_hash)
+                yield from self.keep_record_on_ipfs(invoice.uuid, tx_hash)
                 self.context.logger.info(f"Invoice {invoice.uuid} is settled at {tx_hash}")
                 return True
         return False
