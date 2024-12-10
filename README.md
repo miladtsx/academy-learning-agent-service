@@ -1,10 +1,9 @@
 # DCPay
-DCPay (Decentralized Cryptocurrency Payment Gateway) is a tool that helps businesses accept cryptocurrency payments in a safe and independent way. It uses decentralized software to manage invoices, track payments, and confirm transactions securely. Payment records are stored on IPFS for easy access and long-term safety. With simple integration into business websites, DCPay makes handling cryptocurrency payments reliable, scalable, and easy to use, without needing middlemen.
+DCPay is a decentralized cryptocurrency payment gateway that enables businesses to accept crypto payments securely and independently. Built on the OLAS stack, it leverages decentralization and consensus to ensure reliability and trust, with payment records stored on IPFS for long-term accessibility and security.
 
 # OLAS Functionalities Used
 - API
 - IPFS
-
 
 ## Rounds
 - CollectInvoicesRound
