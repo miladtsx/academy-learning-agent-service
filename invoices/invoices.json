@@ -9,11 +9,10 @@
     },
     {
         "uuid": "123e4567-e89b-12d3-a456-426614174001",
-        "sender_wallet_address": "0xSenderWalletAddress1234567890abcdef",
+        "sender_wallet_address": "0x2F7290f811aa153c3770d884488f763f4bE8eb31",
         "receiver_wallet_address": "0xReceiverWalletAddress1234567890abcdef",
         "amount_in_wei": 2000000000000000000,
         "chain_id": 1,
-        "erc20_token_address": "0xErc20TokenAddress1234567890abcdef",
         "is_settled": false
     }
 ]
