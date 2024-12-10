@@ -8,9 +8,10 @@ DCPay (Decentralized Cryptocurrency Payment Gateway) is a tool that helps busine
         For Demo, read invoices from a json file.
         If no Invoice exists, wait for 10s and try again.
 - DecisionMakingRound
-    Monitor Invoice Settlement On-Chain [Ledger]
+    Monitor Invoice Settlement On-Chain [API]
+    Keep Settled Invoices Records on [IPFS]
 - SelectKeeperRound
-    Select a keepr to invoke the webhook (DRAND [API])
+    Select a keepr to invoke the webhook
 - ConfirmationRound
     Confirm Settlement via Webhook [API]
 - Reset and Start Again
@@ -19,7 +20,7 @@ DCPay (Decentralized Cryptocurrency Payment Gateway) is a tool that helps busine
 ## TODO
 
 - Read Invoices from Remote API
-- Select Keeper Randomly
+- Select Keeper Randomly [DRAND]
 - Store Settlements on IPFS
 - Setup local DB to facilitate Admin Dashboard
 - Call Remote Webhook

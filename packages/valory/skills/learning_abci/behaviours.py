@@ -23,8 +23,9 @@ import json
 from abc import ABC
 from pathlib import Path
 from tempfile import mkdtemp
-from typing import Dict, Generator, Optional, Set, Type, cast
-from packages.valory.skills.learning_abci.models import ( 
+from typing import Generator, Optional, Set, Type, cast
+from packages.valory.skills.abstract_round_abci.io_.store import SupportedFiletype
+from packages.valory.skills.learning_abci.models import (
     Invoice,
     ETHLogsSpecs
 )
@@ -156,6 +157,20 @@ class LearningBaseBehaviour(BaseBehaviour, ABC):  # pylint: disable=too-many-anc
         except Exception:
             return None
 
+    def keep_record_on_ipfs(self, uuid : str, hash : str) -> Generator[None, None, Optional[str]]:
+        """Store the olas/eth price in IPFS"""
+        data = {
+            "uuid": uuid,
+            "hash": hash
+        }
+        ipfs_hash = yield from self.send_to_ipfs(
+            filename=self.metadata_filepath, obj=data, filetype=SupportedFiletype.JSON
+        )
+        self.context.logger.info(
+            f"Invoice Settlement data stored in IPFS: https://gateway.autonolas.tech/ipfs/{ipfs_hash}"
+        )
+        return ipfs_hash
+
 
 class CollectInvoicesBehaviour(
     LearningBaseBehaviour
@@ -264,11 +279,10 @@ class DecisionMakingBehaviour(
         expected_amount = invoice.amount_in_wei
 
         for log in logs:
-            token_address = log["address"]
             sender = "0x" + log["topics"][1][26:]  # Extract the last 20 bytes
             receiver = "0x" + log["topics"][2][26:]
             amount = int(log["data"], 16)  # Decode data to integer
-            
+
             # Does it match
             if (
                 sender.lower() == expected_sender.lower() and 
@@ -276,6 +290,7 @@ class DecisionMakingBehaviour(
                 amount == expected_amount
             ):
                 tx_hash = log["transactionHash"]
+                self.keep_record_on_ipfs(invoice.uuid, tx_hash)
                 self.context.logger.info(f"Invoice {invoice.uuid} is settled at {tx_hash}")
                 return True
         return False
