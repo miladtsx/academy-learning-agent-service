@@ -61,7 +61,7 @@ DCPay is a decentralized cryptocurrency payment gateway that enables businesses 
 1. Clone this repo:
 
     ```
-    git clone git@github.com:miladtsx/academy-learning-service.git
+    git clone --depth 1 https://github.com/miladtsx/academy-learning-agent-service
    
     ```
 
